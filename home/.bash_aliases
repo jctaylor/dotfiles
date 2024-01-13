@@ -6,7 +6,7 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto -F'
+    alias ls='ls --color=auto'
     #alias dir='dir --color=auto'
     #alias vdir='vdir --color=auto'
 
@@ -16,17 +16,25 @@ if [ -x /usr/bin/dircolors ]; then
 fi
 
 # some more ls aliases
-alias ll='ls -alF'
+# 
 alias la='ls -AF'
 alias l='ls -CF'
-alias py3='python3'
-alias py='python3'
-alias gdt='git difftool'
+alias cls='clear; ls -CF'
+alias clsa='clear; ls -CFA'
+alias cll='clear; ls -lF'
+alias clla='clear; ls -lFA'
+alias ll='ls -lF'
+alias lla='ls -AlF'
 alias lart='ls -lart'
 alias cd='cd -P'
 alias g='git status'
 
-## Use `config` alias as a 
-#alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+alias cd='cd -P'
+
+alias py3='python3'
+alias py='python3'
+
+
+alias gdt='git difftool'
+alias g='git status'
 

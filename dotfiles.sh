@@ -419,9 +419,9 @@ else
     for rfile in "${update_files[@]}"; do
         hfile="${HOME}/$rfile"
         if [ ! -f "$hfile" ]; then
-            # Doesn't exit in HOME
+            # Doesn't exist in HOME
             to_home+=( "$rfile" )
-        elif comm 2>/dev/null -1 -2 -3 "$rfile" "$hfile"; then
+        elif cmp "$rfile" "$hfile" >/dev/null 2>&1; then
             # Nothing to do. The files are the same
             message 3 "The files ${hfile} and ${script_dir}/home/$rfile are the same"
         else

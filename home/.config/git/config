@@ -1,0 +1,22 @@
+[user]
+	name = Jason Taylor
+	email = jasontaylor70@gmail.com
+[core]
+	editor = vim
+[safe]
+	directory = /home/wiki/jason_wiki
+	directory = /share/git/Evolve.git
+	directory = /share/Git/repositories
+	directory = /share/Git/repositories/bits.git
+	directory = /share/Git/repositories/bits.git
+	directory = /share/git/boats.git
+	directory = /share/git/boats.git/
+[color]
+	branch = true
+[diff]
+	tool = meld
+[difftool]
+    prompt=false
+[init]
+	defautBranch = main
+	defaultBranch = main

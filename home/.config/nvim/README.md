@@ -81,19 +81,40 @@ Color scheme
 
 omnifunctions are filetype specific functions that provide completion suggestions.
 
-## Unused (or nearly unused keys)
 
-These are keys that can be used as leader or pseudo leader keys.
+## Key maps
 
-[List](https://vim.fandom.com/wiki/Unused_keys) of unused keys
+Finding files or strings in files:
 
-` ` space
-`_` underscore
-`<C-/>` To specify this use ``:nnoremap <C-\/> <cmd>`
+    * find git cached files
+    * find by file type (python, C, lua, etc.)
+    * cross product git ( cached X type )
 
-'<M-*>'  Lots of "meta" aka "alt" keys are unused 
+    <leader>fga -- File Git any
+    <leader>fgp -- File Git python
+    <leader>fgc -- File Git C/C++ (.c, .cpp, .h)
+    <leader>fgm -- File Git Markdown
 
-See `:help key-notation`
+    <leader>saa -- String Any any
+    <leader>sap -- String Any python
+    <leader>sac -- String Any C/C++ (.c, .cpp, .h)
+    <leader>sam -- String Any Markdown
+
+Picker to choose anyother picker:
+
+    Picker that offers the a choice of the above.
+    <leader>ff -- Open a picker that first selects the file-set (git-any, git-c, any-any, etc.)
+    <leader>fs -- Open a picker that first selects the file-set (git-any, git-c, any-any, etc.) for string to find
+
+Picker jump to marks (harpoon-ish?)
+
+    <leader>jf -- Choose one of the marks from the worktree
+    <leader>jb -- Choose one of the marks in the current buffer
+
+
+### Moving within a file
+
+key maps
 
 
 ## Key maps
