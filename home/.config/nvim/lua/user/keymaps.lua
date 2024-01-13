@@ -62,16 +62,5 @@ vim.keymap.set("n", "<M-Left>", ":bprev<CR>" , { desc = "Move to the previous bu
 
 vim.keymap.set("n", "<f1>", ":Telescope help_tags<CR>", { desc = "Use Telescope fuzzy finding to jump to a help topic" })
 
--- This is to fix the intermittent issue with tab complete not working in commandline mode
--- See:
--- www.reddit.com/r/neovim/comments/ucze6k/q_any_idea_why_i_cannot_do_tab_completion_on/
--- vim.keymap.set("c", '<tab>', '<C-z>', { silent = false } )
-
-
--- 
-
---[[
-vim.keymap.set("n", "<leader><leader>", function()
-    vim.cmd("so")
-end)
---]]
+vim.keymap.set( "n", "//", ":set nohlsearch<CR>",  { desc = "Turn off search highlight (until the next search)"}) 
+vim.keymap.set( "n", "/", ":set hlsearch<CR>/",  { desc = "Turn off search highlight (until the next search)"}) 
