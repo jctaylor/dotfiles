@@ -12,6 +12,7 @@ Sync files/subdirectories) to \${HOME} directory.
 
 "
 debug=debug
+debug=
 function log {
     if [ "$debug" = debug ]; then
         echo "$*"

@@ -17,7 +17,7 @@ vim.g.mapleader = " "
 
 require("lazy").setup({ { import = "user.plugins" }, { import = "user.plugins.lsp" } }, {
   install = {
-    colorscheme = { "nightfly" },
+    colorscheme = { "rose-pine" },
   },
   checker = {
     enabled = false,  -- Check to see there are updates to plugins (i.e. the plugin repo)

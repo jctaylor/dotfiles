@@ -6,7 +6,4 @@ return {
     -- 'alexghergh/nvim-tmux-navigation',
 
     "inkarkat/vim-ReplaceWithRegister", -- replace with register contents using motion (gr + motion)
-
-    "alexghergh/nvim-tmux-navigation",
-
 }
