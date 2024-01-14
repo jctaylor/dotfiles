@@ -21,9 +21,9 @@ require("lazy").setup({ { import = "user.plugins" }, { import = "user.plugins.ls
   },
   checker = {
     enabled = false,  -- Check to see there are updates to plugins (i.e. the plugin repo)
-    notify = false,  -- Don't tell me about it
+    notify = true,  -- Don't tell me about it
   },
   change_detection = {
-    notify = false,  -- Check if my pugin specs have been updated.
+    notify = true,  -- Check if my pugin specs have been updated.
   },
 })
