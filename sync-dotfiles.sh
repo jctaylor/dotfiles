@@ -1,18 +1,25 @@
 #!/bin/bash
 #
-#
+
 script_name=$(realpath $0)
 script_dir=$( dirname $script_name )
 script_name=$( basename $script_name )
 
 usage="
+
 Usage: $script_name [--help]
 
 Sync files/subdirectories) to \${HOME} directory.
 
 "
+
+if [ -n "$1" ]; then
+    echo "$usage"
+    exit 0
+fi
+
 debug=debug
-debug=
+#debug=
 function log {
     if [ "$debug" = debug ]; then
         echo "$*"
