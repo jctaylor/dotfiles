@@ -8,9 +8,7 @@ telescope
 LSP
 treesitter
 good colorscheme
-
 key maps
-
 
 ## Key maps
 
