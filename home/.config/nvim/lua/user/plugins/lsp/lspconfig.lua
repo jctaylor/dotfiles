@@ -70,20 +70,23 @@ return {
             vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
         end
 
-        lspconfig["ccls"].setup ({
+        -- Configure clangd
+        lspconfig["clangd"].setup ({
+            cmd = { 'clangd' },
+            filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
+            root_dir = function(fname)
+                local root_files = {
+                    '.clangd',
+                    '.clang-tidy',
+                    '.clang-format',
+                    'compile_commands.json',
+                    'compile_flags.txt',
+                }
+                return lspconfig.util.root_pattern(table.unpack(root_files))(fname) or lspconfig.util.find_git_ancestor(fname)
+            end,
             capabilities = capabilities,
             on_attach = on_attach,
-            init_options = {
-                compilationDatabaseDirectory = "build";
-                index = {
-                    threads = 4;
-                };
-                clang = {
-                    excludeArgs = { "-frounding-math"} ;
-                };
-            }
         })
-
         -- configure graphql language server
         lspconfig["graphql"].setup({
             capabilities = capabilities,
