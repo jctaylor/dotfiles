@@ -2,7 +2,7 @@ return {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
     dependencies = {
-    "hrsh7th/cmp-nvim-lsp",
+        "hrsh7th/cmp-nvim-lsp",
         { "antosha417/nvim-lsp-file-operations", config = true },
     },
     config = function()
@@ -99,9 +99,10 @@ return {
         })
 
         -- configure python server
-        lspconfig["pyright"].setup({
+        lspconfig["pylsp"].setup({
             capabilities = capabilities,
             on_attach = on_attach,
+            filetypes = { 'python' },
         })
 
         -- configure lua server (with special settings)
