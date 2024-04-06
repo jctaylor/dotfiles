@@ -74,16 +74,16 @@ return {
         lspconfig["clangd"].setup ({
             cmd = { 'clangd' },
             filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
-            root_dir = function(fname)
-                local root_files = {
-                    '.clangd',
-                    '.clang-tidy',
-                    '.clang-format',
-                    'compile_commands.json',
-                    'compile_flags.txt',
-                }
-                return lspconfig.util.root_pattern(table.unpack(root_files))(fname) or lspconfig.util.find_git_ancestor(fname)
-            end,
+--            root_dir = function(fname)
+--                local root_files = {
+--                    '.clangd',
+--                    '.clang-tidy',
+--                    '.clang-format',
+--                    'compile_commands.json',
+--                    'compile_flags.txt',
+--                }
+--                return lspconfig.util.root_pattern(root_files)(fname) or lspconfig.util.find_git_ancestor(fname)
+--            end,
             capabilities = capabilities,
             on_attach = on_attach,
         })
