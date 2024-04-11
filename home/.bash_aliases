@@ -23,6 +23,7 @@ alias py3='python3'
 alias py='python3'
 alias gdt='git difftool'
 alias lart='ls -lart'
+alias cd='cd -P'
 
 ## Use `config` alias as a 
 #alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
