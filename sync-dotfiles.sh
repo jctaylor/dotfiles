@@ -1,5 +1,4 @@
 #!/bin/bash
-#
 
 script_name=$(realpath $0)
 script_dir=$( dirname $script_name )
@@ -10,6 +9,10 @@ usage="
 Usage: $script_name [--help]
 
 Sync files/subdirectories) to \${HOME} directory.
+
+It tries to be smart about which file is athoritative.
+
+Currently it is using hardlinks for the files.
 
 "
 
@@ -26,7 +29,7 @@ function log {
     fi
 }
 
-cd $script_dir
+cd "$script_dir"
 
 # Find all the directories in ${script_dir}/home
 for src_dir in $(find home -type d); do
@@ -47,7 +50,7 @@ for src_file in $(find home -type f); do
     src_file=$(realpath $src_file)
     if [ -f "$dst_file" ] && [ $dst_file -nt $src_file ]; then
         log "Repo file is newer than real file. Linking $src_file to $dst_file"
-        ln -f -n  $dst_file $src_file  # Reverse copy
+        ln -f -n  $dst_file $src_file  # Reverse copy:q
     elif [ $src_file -nt $dst_file ]; then
         log "Real file is newer than repo file. Linking $dst_file to $src_file"
         ln -f -n  $src_file $dst_file  # Reverse copy
@@ -58,5 +61,17 @@ for src_file in $(find home -type f); do
     fi
 done
 
-#    log "CMD: ln -f -n $src_file $file"
-#    ln -f -n "$src_file" "$dst_file"
+exit 0
+
+# TODO: find files in home that have been deleted from git repo
+# The challenge is, we don't want to delete files in the home
+# directory or .config, just because they don't exist in repo
+#
+#for src_dir in $(find home -maxdepth 1 -type d); do
+#    dir_path=$( echo $src_dir | sed "s#.*home/#${HOME}/#" )
+#    files=$(find ${dir_path) -type f})
+#    for dst in $files; do
+#        srd=$( echo "$dst" | sed 's/#')
+#    
+#done
+

@@ -77,7 +77,7 @@ fi
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
 if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+    . "${HOME}/.bash_aliases"
 fi
 
 # enable programmable completion features (you don't need to enable
@@ -104,7 +104,7 @@ function prompt_cmd
         PS1=""
     fi
     PS1+="\[\e[1;91;106m\] $(date "+%H:%M:%S") \[\e[m\]"
-    gitRepo=$( basename $( git rev-parse --show-toplevel 2> /dev/null ) 2>/dev/null )
+    gitRepo=$( basename "$( git rev-parse --show-toplevel 2> /dev/null )" 2>/dev/null )
     if [ -n "${gitRepo}" ]; then
         gitBranch=$( git rev-parse --abbrev-ref HEAD 2> /dev/null )
         PS1+="\[\e[1;90;104m\] ${gitRepo} \[\e[1;90;44m\] ${gitBranch} \[\e[m\] "

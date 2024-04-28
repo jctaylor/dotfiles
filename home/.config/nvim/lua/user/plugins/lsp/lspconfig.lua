@@ -9,11 +9,9 @@ return {
         -- import lspconfig plugin
         local lspconfig = require("lspconfig")
 
-        -- import cmp-nvim-lsp plugin
-        local cmp_nvim_lsp = require("cmp_nvim_lsp")
-
+        -- These key maps are set when an LSP attaches to a buffer
+        -- This on_attach function is passed to each LSP config
         local keymap = vim.keymap -- for conciseness
-
         local opts = { noremap = true, silent = true }
         local on_attach = function(_, bufnr)
             opts.buffer = bufnr
@@ -57,10 +55,14 @@ return {
 
             opts.desc = "Restart LSP"
             keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts) -- mapping to restart lsp if necessary
-        end
 
-        -- used to enable autocompletion (assign to every lsp server config)
-        local capabilities = cmp_nvim_lsp.default_capabilities()
+            opts.desc = "Format buffer using LSP"
+            keymap.set("n", "<leader>F", vim.lsp.buf.format, opts) -- If capable, format the buffer
+        end
+        -- import cmp-nvim-lsp plugin
+
+        -- Tell the LSP's that they can add autocomplete suggestions
+        local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
         -- Change the Diagnostic symbols in the sign column (gutter)
         -- (not in youtube nvim video)
@@ -71,41 +73,48 @@ return {
         end
 
         -- Configure clangd
-        lspconfig["clangd"].setup ({
-            cmd = { 'clangd' },
-            filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
---            root_dir = function(fname)
---                local root_files = {
---                    '.clangd',
---                    '.clang-tidy',
---                    '.clang-format',
---                    'compile_commands.json',
---                    'compile_flags.txt',
---                }
---                return lspconfig.util.root_pattern(root_files)(fname) or lspconfig.util.find_git_ancestor(fname)
---            end,
+        lspconfig["clangd"].setup({
             capabilities = capabilities,
             on_attach = on_attach,
-        })
-        -- configure graphql language server
-        lspconfig["graphql"].setup({
-            capabilities = capabilities,
-            on_attach = on_attach,
-            filetypes = { "graphql", "gql", "svelte", "typescriptreact", "javascriptreact" },
         })
 
-        -- configure emmet language server
-        lspconfig["emmet_ls"].setup({
+        --
+        lspconfig["cmake"].setup({
             capabilities = capabilities,
             on_attach = on_attach,
-            filetypes = { "html", "typescriptreact", "javascriptreact", "css", "sass", "scss", "less", "svelte" },
         })
+
+        lspconfig["bashls"].setup({
+            capabilities = capabilities,
+            on_attach = on_attach,
+        })
+
+
+        lspconfig["awk_ls"].setup({
+            capabilities = capabilities,
+            on_attach = on_attach,
+        })
+
+
+
+        -- configure graphql language server
+        -- lspconfig["graphql"].setup({
+        --     capabilities = capabilities,
+        --     on_attach = on_attach,
+        --     filetypes = { "graphql", "gql", "svelte", "typescriptreact", "javascriptreact" },
+        -- })
 
         -- configure python server
-        lspconfig["pylsp"].setup({
+        -- Installed via `pip install pyright`
+        --lspconfig["pyright"].setup({
+        --    capabilities = capabilities,
+        --    on_attach = on_attach,
+        --})
+
+        -- pip install -U jedi-language-server
+        lspconfig["jedi_language_server"].setup({
             capabilities = capabilities,
             on_attach = on_attach,
-            filetypes = { 'python' },
         })
 
         -- configure lua server (with special settings)
@@ -128,5 +137,7 @@ return {
                 },
             },
         })
+
+
     end,
 }
