@@ -1,5 +1,7 @@
 # My dotfiles
 
+**Very much a ork in progress**
+
 The style I use is:
 
 A regular repo (clone into `${HOME}/dotfiles` or something similar)
