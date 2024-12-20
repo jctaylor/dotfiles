@@ -37,6 +37,7 @@ vim.opt.whichwrap = "bs<>[]hl"
 vim.opt.wrap = true
 vim.opt.writebackup = false
 vim.opt.colorcolumn = "120" -- This is a string. In general it is a list of columns seperated by commas
+vim.opt.spell = true
 
 
 vim.api.nvim_create_user_command('WQ', 'wq', {})
