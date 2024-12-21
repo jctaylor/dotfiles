@@ -36,9 +36,21 @@ vim.opt.updatetime = 50
 vim.opt.whichwrap = "bs<>[]hl"
 vim.opt.wrap = true
 vim.opt.writebackup = false
+<<<<<<< HEAD
 vim.g.loaded_ruby_provider = 0
 vim.g.loaded_node_provider = 0
 vim.g.loaded_perl_provider = 0
+=======
+vim.opt.colorcolumn = "120" -- This is a string. In general it is a list of columns seperated by commas
+vim.opt.spell = true
+
+>>>>>>> 22527a5a4a2a7b405e43abde5282eabeff2779ff
+
+vim.api.nvim_create_user_command('WQ', 'wq', {})
+vim.api.nvim_create_user_command('Wq', 'wq', {})
+vim.api.nvim_create_user_command('W', 'w', {})
+vim.api.nvim_create_user_command('Qa', 'qa', {})
+vim.api.nvim_create_user_command('Q', 'q', {})
 
 
 
