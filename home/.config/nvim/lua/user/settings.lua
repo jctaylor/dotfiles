@@ -36,7 +36,9 @@ vim.opt.updatetime = 50
 vim.opt.whichwrap = "bs<>[]hl"
 vim.opt.wrap = true
 vim.opt.writebackup = false
-
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_node_provider = 0
+vim.g.loaded_perl_provider = 0
 
 
 

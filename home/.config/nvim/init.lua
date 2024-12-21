@@ -1,6 +1,6 @@
 
 if vim.g.vscode then
-    require('vscode')    -- vscode-nvim config
+    require('vs_code')    -- vscode-nvim config
 else
     require('user')      -- nvim config
 end
