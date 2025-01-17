@@ -16,8 +16,8 @@ HISTCONTROL=ignoreboth
 shopt -s histappend
 
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=5000
-HISTFILESIZE=20000
+HISTSIZE=10000
+HISTFILESIZE=100000
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -110,13 +110,13 @@ function prompt_cmd
         PS1+="\[\e[1;90;104m\] ${gitRepo} \[\e[1;90;44m\] ${gitBranch} \[\e[m\] "
     fi
     #PS1+="[\j]\n\[\e[94m\]\h  \w/\[\e[0m\]\n\[\e[32m\]\\$ \[\e[0m\]"
-    PS1+="[\j] \[\e[32m\](\h) \[\e[94m\]\w/\[\e[0m\]\n\[\e[32m\]\\$ \[\e[0m\]"
+    PS1+="[\j] \[\e[32;m\](\h) \[\e[94m\]\w/\[\e[0m\]\n\[\e[32m\]\\$ \[\e[0m\]"
 
     # List background jobs
     #jobs
 
     # Set the window name and icon?
-    echo -ne "\033]0;$(pwd| sed 's#/home/jtaylor/c4a/#Project: #' | sed 's#/home/jtaylor#~#' )\007"
+    echo -ne "\033]0;MAC     $(pwd| sed 's#/home/jtaylor/c4a/#Project: #' | sed 's#/home/jtaylor#~#' )\007"
 }
 
 PROMPT_COMMAND='prompt_cmd'
