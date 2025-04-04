@@ -102,13 +102,13 @@ fi
 
 function repo_from_real_file {
     # Convert an installed path into repo path
-    echo "$1" |  sed "#${HOME}/#${script_dir}/#"
+    echo "$1" |  sed "s#${HOME}/#${script_dir}/#"
 }
 
 
 function real_from_repo_file {
     # Convert a repo path into installed path
-    echo "$1" |  sed "#${script_dir}/#${HOME}/#"
+    echo "$1" |  sed "s#${script_dir}/#${HOME}/#"
 }
 
 
@@ -119,7 +119,7 @@ function sync_file {
         $cmd_prefix cp "$1" "$backup_dir/"
     fi
 
-    case strategy in
+    case $strategy in
         hard_link)
             $cmd_prefix ln -f -n "$1" "$2"
             ;;
@@ -133,7 +133,7 @@ function sync_file {
             $cmd_prefix diff "$1" "$2"
             ;;
         *)
-            echo >&2 "ERROR: not valid strategy"
+            echo >&2 "ERROR: not valid strategy $strategy"
             exit 1
             ;;
     esac
@@ -167,14 +167,18 @@ done
 # Sync files either direction. Take the newer file as authoritative
 for repo_file in $(find home -type f -print0 | xargs -0 realpath ); do
     real_file=$(real_from_repo_file $repo_file)
-    if [ -f "$real_file" ] && [ $real_file -nt $repo_file ]; then
-        # copy or link real file to repo
-        sync_file $real_file $repo_file
-    elif [ $repo_file -nt $real_file ]; then
+    echo $real_file $repo_file
+    if [ $real_file -ot $repo_file ]; then
         # copy or link repo file to real file
+        #echo "$repo_file --> $real_file"
+        sync_file $real_file $repo_file
+    elif [ $repo_file -ot $real_file ]; then
         sync_file $repo_file $real_file
+        # copy or link real file to repo
+        #echo "$real_file --> $repo_file"
     elif [ $repo_file -ef $real_file ]; then
         # they are the same file, nothing to do
+        #echo "$real_file matches repo"
         :
     else
         echo >&2 "WARNING: check $repo_file and $real_file manualy"
