@@ -16,17 +16,20 @@ if [ -x /usr/bin/dircolors ]; then
 fi
 
 # some more ls aliases
-alias ll='ls -alF'
-alias la='ls -AF'
-alias l='ls -CF'
+alias ll='ls -alF --color=always'
+alias la='ls -AF --color=always'
+alias lart='ls -lart --color=always'
+alias l='ls -CF --color=always'
+alias ls='ls -CF --color=always'
 alias py3='python3'
 alias py='python3'
 alias gdt='git difftool'
-alias lart='ls -lart'
 alias cd='cd -P'
 alias g='git status'
+alias venv-on='source venv-activate.sh'
+alias venv-off='deactivate'
 
-## Use `config` alias as a 
-#alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+# Mac work computer
+alias ugr='ssh ubuntugr -t /home/jason/.local/bin/tmux-notes.sh'
+
 
