@@ -44,6 +44,7 @@ strategy=hard_link   # diff, copy, hard_link
 dry_run=""
 new_files=()   # An array of new files to add
 backup_dir=
+cmd_prefix=""
 
 while [ -n "$1" ]; do
     case "$1" in
@@ -60,15 +61,16 @@ while [ -n "$1" ]; do
             ;;
         *-di*)
             # show differences
-            strategy=diff
+            strategy=show_diff
             ;;
         *-c*)
             strategy=copy
             ;;
         *-b*)
             backup_dir="$script_dir/backup$(date +%Y-%m-%d_%H.%M.%S)"
-            if mkdir -p $backup_dir; then
+            if ! mkdir -p $backup_dir; then
                 echo "ERROR: Could not create backup directory $backup_dir"
+                exit 1
             fi
             ;;
         -v)
@@ -102,13 +104,13 @@ fi
 
 function repo_from_real_file {
     # Convert an installed path into repo path
-    echo "$1" |  sed "s#${HOME}/#${script_dir}/#"
+    echo "$1" |  sed "s#${HOME}/#${script_dir}/home/#"
 }
 
 
 function real_from_repo_file {
     # Convert a repo path into installed path
-    echo "$1" |  sed "s#${script_dir}/#${HOME}/#"
+    echo "$1" |  sed "s#${script_dir}/home/#${HOME}/#"
 }
 
 
@@ -116,7 +118,7 @@ function sync_file {
 
     # If backup is selected, real files are copied to a backup directory before copying or linking
     if [ -n "$backup_dir" ] && [[ $1 == ${script_dir}* ]]; then
-        $cmd_prefix cp "$1" "$backup_dir/"
+        $cmd_prefix cp "$2" "$backup_dir/"
     fi
 
     case $strategy in
@@ -130,7 +132,7 @@ function sync_file {
             $cmd_prefix cp -f "$1" "$2"
             ;;
         show_diff)
-            $cmd_prefix diff "$1" "$2"
+            diff "$1" "$2"
             ;;
         *)
             echo >&2 "ERROR: not valid strategy $strategy"
@@ -167,18 +169,17 @@ done
 # Sync files either direction. Take the newer file as authoritative
 for repo_file in $(find home -type f -print0 | xargs -0 realpath ); do
     real_file=$(real_from_repo_file $repo_file)
-    echo $real_file $repo_file
     if [ $real_file -ot $repo_file ]; then
         # copy or link repo file to real file
-        #echo "$repo_file --> $real_file"
-        sync_file $real_file $repo_file
-    elif [ $repo_file -ot $real_file ]; then
+        echo "$real_file <-- $repo_file"
         sync_file $repo_file $real_file
+    elif [ $repo_file -ot $real_file ]; then
+        echo "$real_file --> $repo_file"
+        sync_file $real_file $repo_file
         # copy or link real file to repo
-        #echo "$real_file --> $repo_file"
     elif [ $repo_file -ef $real_file ]; then
         # they are the same file, nothing to do
-        #echo "$real_file matches repo"
+        # echo "$real_file matches repo"
         :
     else
         echo >&2 "WARNING: check $repo_file and $real_file manualy"
