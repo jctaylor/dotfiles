@@ -26,11 +26,13 @@ OPTIONS:
 
     --dry-run       Dry run, show what would be done
 
+    --diff          Show differences between the repo and the installed files
+
     --copy          Copy (not hard link) (TODO what if is already a hard link?)
 
     --symbolic      Create symbolic links
 
-    --add FILE ...  Add a new config file to the repository (i.e. place it under dotfile control).
+    --add FILE ...  Add an existing file in the \$HOME to the repo (i.e. place it under dotfile control).
                     NOTE: File names that start with '-' will be treated as an option not a filename.
                     In that case, add the file to $script_dir manually.
 
@@ -38,7 +40,7 @@ OPTIONS:
 
 
 # Script parameters
-strategy=hard_link
+strategy=hard_link   # diff, copy, hard_link
 dry_run=""
 new_files=()   # An array of new files to add
 backup_dir=
@@ -77,7 +79,7 @@ while [ -n "$1" ]; do
             # If you need to add a file that starts with '-' you can give the full path or add it manually
             echo ${2:0:1}
             while [ -n "$2" ] && [ "${2:0:1}" != "-" ]; do 
-                new_files+="$2"
+                new_files+=("$2")
                 shift
             done
             ;;
@@ -99,11 +101,13 @@ fi
 
 
 function repo_from_real_file {
+    # Convert an installed path into repo path
     echo "$1" |  sed "#${HOME}/#${script_dir}/#"
 }
 
 
 function real_from_repo_file {
+    # Convert a repo path into installed path
     echo "$1" |  sed "#${script_dir}/#${HOME}/#"
 }
 
@@ -136,6 +140,11 @@ function sync_file {
 
 }
 
+function log {
+    if [ "$debug" = debug ]; then
+        echo "$*"
+    fi
+}
 
 # Work from this script directory
 cd "$script_dir"
@@ -174,19 +183,21 @@ done
 
 # Add new files
 # New files that exist in HOME can be added to the repo to track with the --add option
-for new_file in "${new_files[@]}"; do
-    if [ -f $new_file ]; then
-        real_file=$(realpath $new_file)
-        repo_file=$(repo_from_real_file $real_file )
-        if [ -f $repo_file ]; then
-            echo >&2 "WARNING: Trying to add a new file \"${new_file}\" that is already tracked"
+if [ ${#new_files[@]} -ne 0 ]; then 
+    for new_file in "${new_files[@]}"; do
+        if [ -f $new_file ]; then
+            real_file=$(realpath $new_file)
+            repo_file=$(repo_from_real_file $real_file )
+            if [ -f $repo_file ]; then
+                echo >&2 "WARNING: Trying to add a new file \"${new_file}\" that is already tracked"
+            else
+                $cmd_prefix  $real_file $repo_file
+            fi
         else
-            $cmd_prefix  $real_file $repo_file
+            echo >&2 "WARNING: file \"$real_file\" not found"
         fi
-    else
-        echo >&2 "WARNING: file \"$real_file\" not found"
-    fi
-done
+    done
+fi
 
 git status
 
