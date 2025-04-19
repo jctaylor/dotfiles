@@ -117,6 +117,27 @@ return {
             on_attach = on_attach,
         })
 
+        lspconfig["pylsp"].setup({
+            filetypes = { 'python' },
+            capabilities = capabilities,
+            on_attach = on_attach,
+            settings = {
+                pylsp = {
+                    plugins = {
+                        pycodestyle = {
+                            maxLineLength = 160
+                        },
+                        flake8 = {
+                            maxLineLength = 160
+                        },
+                        mccabe = {
+                            threshold = 20
+                        },
+                    }
+                }
+            }
+        })
+
         -- configure lua server (with special settings)
         lspconfig["lua_ls"].setup({
             capabilities = capabilities,
@@ -137,7 +158,5 @@ return {
                 },
             },
         })
-
-
     end,
 }

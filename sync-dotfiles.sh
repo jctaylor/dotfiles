@@ -1,8 +1,8 @@
 #!/bin/bash
 
-script_name=$(realpath $0)
-script_dir=$( dirname $script_name )
-script_name=$( basename $script_name )
+script_name=$(realpath "$0")
+script_dir=$( dirname "$script_name")
+script_name=$( basename "$script_name" )
 
 usage="
 
@@ -36,14 +36,23 @@ OPTIONS:
                     NOTE: File names that start with '-' will be treated as an option not a filename.
                     In that case, add the file to $script_dir manually.
 
+    --verbose       Verbose output.
 "
 
 
+function fatal {
+    # Call this if there is an unrecoverable error
+    echo "$*" >&2
+    exit 1
+}
+
 # Script parameters
 strategy=hard_link   # diff, copy, hard_link
-dry_run=""
+verbose=0
 new_files=()   # An array of new files to add
 backup_dir=
+cmd=" "
+dry_run=""
 
 while [ -n "$1" ]; do
     case "$1" in
@@ -52,49 +61,95 @@ while [ -n "$1" ]; do
             exit 0
             ;;
         -d)
-            echo >&2 "ERROR: ambiguous option --dry-run or --diff"
-            exit 1
+            fatal "ERROR: ambiguous option --dry-run or --diff"
             ;;
         *-dr* )
-            cmd_prefix="echo dry run: "
+            cmd="echo dry run: "
+            dry_run="echo "
             ;;
         *-di*)
             # show differences
-            strategy=diff
+            strategy="diff"
             ;;
         *-c*)
-            strategy=copy
+            strategy="copy"
             ;;
         *-b*)
             backup_dir="$script_dir/backup$(date +%Y-%m-%d_%H.%M.%S)"
-            if mkdir -p $backup_dir; then
-                echo "ERROR: Could not create backup directory $backup_dir"
-            fi
             ;;
         -v)
-            set -x
+            verbose=$(("$verbose" + 1))
             ;;
         *-a*)
             # All options after --add the don't start with '-' are considered files.
             # If you need to add a file that starts with '-' you can give the full path or add it manually
-            echo ${2:0:1}
+            echo "${2:0:1}"
             while [ -n "$2" ] && [ "${2:0:1}" != "-" ]; do 
                 new_files+=("$2")
                 shift
             done
             ;;
         *)
-            echo "Unknown option $1 $usage" >&2
-            exit 1
+            fatal "Unknown option $1 $usage" >&2
             ;;
     esac
     shift
 done
 
+if [ "$verbose" -gt 2 ]; then
+    set -x
+    if [ "$verbose" -gt 9 ]; then
+        verbose=9
+    fi
+fi
+
+
+case $strategy in
+    hard_link)
+        cmd+="ln -f -n "
+        ;;
+    symbolic_link)
+        cmd+="ln -s -f -n "
+        ;;
+    copy_file)
+        cmd+="cp -f "
+        ;;
+    show_diff)
+        cmd+="diff "
+        ;;
+    *)
+        fatal "ERROR: not valid strategy"
+        ;;
+esac
+
+
 set -u
 
+function log {
+    # log [LEVEL] MESSAGE
+    if [[ "$1" =~ ^[0-9]$ ]]; then
+        # The first argument is a number
+        level="$1"
+        shift
+    else
+        level=0  # default level
+    fi
+    if [ "$level" -ge "$verbose" ]; then
+        return
+    fi
+    echo "$*"
+}
 
-if [ $strategy = diff ]; then
+
+if [ -n "$backup_dir" ]; then
+    log 1 "Creating backup directory $backup_dir"
+    mkdir -p "$backup_dir" || fatal "ERROR: Could not create backup directory $backup_dir"
+fi
+
+if [ "$strategy" = diff ]; then
+    if [ -n "$backup_dir" ]; then
+        log 2 backup directory ignored if subcommand is \"diff\"
+    fi
     backup_dir="" # make no sense to backup when just comparing files
 fi
 
@@ -102,80 +157,48 @@ fi
 
 function repo_from_real_file {
     # Convert an installed path into repo path
-    echo "$1" |  sed "#${HOME}/#${script_dir}/#"
+    echo "$1" |  sed "s#${HOME}#${script_dir}/home#"
 }
 
 
 function real_from_repo_file {
     # Convert a repo path into installed path
-    echo "$1" |  sed "#${script_dir}/#${HOME}/#"
+    echo "$1" |  sed "s#${script_dir}/home#${HOME}#"
 }
 
-
-function sync_file {
-
-    # If backup is selected, real files are copied to a backup directory before copying or linking
-    if [ -n "$backup_dir" ] && [[ $1 == ${script_dir}* ]]; then
-        $cmd_prefix cp "$1" "$backup_dir/"
-    fi
-
-    case strategy in
-        hard_link)
-            $cmd_prefix ln -f -n "$1" "$2"
-            ;;
-        symbolic_link)
-            $cmd_prefix ln -s -f -n  "$1" "$2"
-            ;;
-        copy_file)
-            $cmd_prefix cp -f "$1" "$2"
-            ;;
-        show_diff)
-            $cmd_prefix diff "$1" "$2"
-            ;;
-        *)
-            echo >&2 "ERROR: not valid strategy"
-            exit 1
-            ;;
-    esac
-
-}
-
-function log {
-    if [ "$debug" = debug ]; then
-        echo "$*"
-    fi
-}
 
 # Work from this script directory
-cd "$script_dir"
+cd "$script_dir" || fatal "ERROR: could not switch to $script_dir"
 
-
-echo "
+log 1 "
 Running $script_name from $script_dir
 "
 
 # Make any needed directories in HOME. 
 # If there is a directory in dotfile/home that is not in ${HOME}, create it in HOME.
-for src_dir in $(find home -type d); do
-    dir_path=$( echo $src_dir | sed "s#.*home/#${HOME}/#" )
-    if [ -n "$dir_path" ] && [ ! -d $dir_path ]; then
-        $cmd_prefix mkdir -p "$dir_path"
+while read -r src_dir; do
+    dir_path="${src_dir//"$script_dir/home"/"${HOME}"}"
+    log 2 "making sure $dir_path exists"
+    if [ -n "$dir_path" ] && [ ! -d "$dir_path" ]; then
+        $dry_run mkdir -p "$dir_path"
     fi
-done
+done < <(find home -type d )
 
 
 # Sync files either direction. Take the newer file as authoritative
 for repo_file in $(find home -type f -print0 | xargs -0 realpath ); do
-    real_file=$(real_from_repo_file $repo_file)
-    if [ -f "$real_file" ] && [ $real_file -nt $repo_file ]; then
+    real_file="$(real_from_repo_file "$repo_file")"
+    if [ -f "$real_file" ] && [ "$real_file" -nt "$repo_file" ]; then
         # copy or link real file to repo
-        sync_file $real_file $repo_file
-    elif [ $repo_file -nt $real_file ]; then
+        log 1 "$cmd $real_file $repo_file"
+        $cmd "$real_file" "$repo_file"
+    elif [ "$repo_file" -nt "$real_file" ]; then
         # copy or link repo file to real file
-        sync_file $repo_file $real_file
-    elif [ $repo_file -ef $real_file ]; then
+        log 1 "$cmd $repo_file $real_file"
+        $cmd "$repo_file" "$real_file"
+    elif [ "$repo_file" -ef "$real_file" ]; then
         # they are the same file, nothing to do
-        :
+        log 2 "$repo_file  $real_file are the same"
     else
         echo >&2 "WARNING: check $repo_file and $real_file manualy"
     fi
@@ -185,21 +208,21 @@ done
 # New files that exist in HOME can be added to the repo to track with the --add option
 if [ ${#new_files[@]} -ne 0 ]; then 
     for new_file in "${new_files[@]}"; do
-        if [ -f $new_file ]; then
-            real_file=$(realpath $new_file)
-            repo_file=$(repo_from_real_file $real_file )
-            if [ -f $repo_file ]; then
+        if [ -f "$new_file" ]; then
+            real_file="$(realpath "$new_file")"
+            repo_file="$(repo_from_real_file "$real_file" )"
+            if [ -f "$repo_file" ]; then
                 echo >&2 "WARNING: Trying to add a new file \"${new_file}\" that is already tracked"
             else
-                $cmd_prefix  $real_file $repo_file
+                $dry_run cp "$real_file" "$repo_file"
+                git add "$repo_file"
             fi
         else
             echo >&2 "WARNING: file \"$real_file\" not found"
         fi
     done
+    git status
 fi
-
-git status
 
 exit 0
 

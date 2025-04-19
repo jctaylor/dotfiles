@@ -3,6 +3,7 @@
 vim.opt.backup = false
 vim.opt.clipboard = "unnamedplus"
 vim.opt.cmdheight = 2
+vim.opt.colorcolumn = "120" -- This is a string. In general it is a list of columns seperated by commas
 vim.opt.conceallevel = 0
 vim.opt.cursorline = true
 vim.opt.expandtab = true
@@ -24,6 +25,7 @@ vim.opt.signcolumn = "yes"
 vim.opt.smartcase = true
 vim.opt.smartindent = true
 vim.opt.softtabstop = 4
+vim.opt.spell = true
 vim.opt.splitbelow = true
 vim.opt.splitright = true
 vim.opt.swapfile = true
@@ -32,19 +34,10 @@ vim.opt.termguicolors = true
 vim.opt.timeoutlen = 2000  -- Timeout for partial keymap sequences e.g. <leader>ff
 vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
 vim.opt.undofile = true
-vim.opt.updatetime = 50
+vim.opt.updatetime = 500 -- after this many milliseconds nothing is typed, save to swapfile
 vim.opt.whichwrap = "bs<>[]hl"
 vim.opt.wrap = true
 vim.opt.writebackup = false
-<<<<<<< HEAD
-vim.g.loaded_ruby_provider = 0
-vim.g.loaded_node_provider = 0
-vim.g.loaded_perl_provider = 0
-=======
-vim.opt.colorcolumn = "120" -- This is a string. In general it is a list of columns seperated by commas
-vim.opt.spell = true
-
->>>>>>> 22527a5a4a2a7b405e43abde5282eabeff2779ff
 
 vim.api.nvim_create_user_command('WQ', 'wq', {})
 vim.api.nvim_create_user_command('Wq', 'wq', {})
