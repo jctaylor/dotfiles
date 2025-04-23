@@ -1,3 +1,10 @@
+--[[
+--  Modes:
+--    n normal mode
+--    s select mode, like select mode in windows type editors, you can select then typeing will replace text 
+--    x visual mode strictly old school visual mode
+--    v visual and select mode (notice how vim visual mode has become visual/select mode in neovim)
+--]]
 
 vim.keymap.set("n", "<leader>pv", vim.cmd.Ex, { desc = "Open up EXplore"} )  -- \pv is Explore
 
@@ -6,7 +13,7 @@ vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move a visual block up wi
 vim.keymap.set("v", ">", ">gv", { desc = "Indent visual block and keep visual" } )
 vim.keymap.set("v", "<", "<gv", { desc = "De-indent visual block and keep visual" })
 
-vim.keymap.set("n", "J", "mzJ`z")
+vim.keymap.set("n", "J", "mzJ`z", {desc = "Join next line to this one (without moving the cursor)"})
 vim.keymap.set("n", "<C-d>", "<C-d>zz")
 vim.keymap.set("n", "<C-u>", "<C-u>zz")
 vim.keymap.set("n", "n", "nzzzv", { desc = "Move to next search term, and center screen"} )
@@ -23,6 +30,7 @@ vim.keymap.set("n", "<leader>Y", [["+Y]], { desc = 'Same as "Y" except use syste
 
 vim.keymap.set({"n", "v"}, "<leader>d", [["_d]])
 
+-- To protect against my constant typing of "Q" in normal mode
 vim.keymap.set("n", "Q", "<nop>")
 
 --
