@@ -1,10 +1,14 @@
 return {
+-- nvim-lspconfig is just a plugin that pulls in a load of default configuration options for the various 
+-- LSP servers. This is strictly not necessary, all the options could be configure manually. For example 
+-- pylsp aka python-lsp-server configuration options are listed here
+-- https://github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
+--
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
-    dependencies = {
-        "hrsh7th/cmp-nvim-lsp",
-        { "antosha417/nvim-lsp-file-operations", config = true },
-    },
+--    dependencies = {
+--        "hrsh7th/cmp-nvim-lsp",
+--    },
     config = function()
         -- import lspconfig plugin
         local lspconfig = require("lspconfig")
@@ -110,12 +114,9 @@ return {
         --    capabilities = capabilities,
         --    on_attach = on_attach,
         --})
-
-        -- pip install -U jedi-language-server
-        lspconfig["jedi_language_server"].setup({
-            capabilities = capabilities,
-            on_attach = on_attach,
-        })
+        --
+        -- pylsp aka python-lsp-server configuration options are listed here
+        -- https://github.com/python-lsp/python-lsp-server/blob/develop/CONFIGURATION.md
 
         lspconfig["pylsp"].setup({
             filetypes = { 'python' },
@@ -139,24 +140,24 @@ return {
         })
 
         -- configure lua server (with special settings)
-        lspconfig["lua_ls"].setup({
-            capabilities = capabilities,
-            on_attach = on_attach,
-            settings = { -- custom settings for lua
-                Lua = {
-                    -- make the language server recognize "vim" global
-                    diagnostics = {
-                        globals = { "vim" },
-                    },
-                    workspace = {
-                        -- make language server aware of runtime files
-                        library = {
-                            [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-                            [vim.fn.stdpath("config") .. "/lua"] = true,
-                        },
-                    },
-                },
-            },
-        })
+       -- lspconfig["lua_ls"].setup({
+       --     capabilities = capabilities,
+       --     on_attach = on_attach,
+       --     settings = { -- custom settings for lua
+       --         Lua = {
+       --             -- make the language server recognize "vim" global
+       --             diagnostics = {
+       --                 globals = { "vim" },
+       --             },
+       --             workspace = {
+       --                 -- make language server aware of runtime files
+       --                 library = {
+       --                     [vim.fn.expand("$VIMRUNTIME/lua")] = true,
+       --                     [vim.fn.stdpath("config") .. "/lua"] = true,
+       --                 },
+       --             },
+       --         },
+       --     },
+       -- })
     end,
 }

@@ -2,13 +2,38 @@
 My vim comfig
 
 
-## Priorites:
+## Priorities:
 
-telescope
-LSP
-treesitter
-good colorscheme
-key maps
+Plugin manager 
+    * folke/lazy.nvim
+
+Project file navigation
+    * telescope
+    What's the difference between 
+
+LSP support 
+    * neovim/nvim-lspconfig
+    * williamboman/mason.nvim
+    * williamboman/mason-lspconfig.nvim
+
+Completion
+    * hrsh7th/nvim-cmp
+        * hrsh7th/cmp-buffer
+        * hrsh7th/cmp-path
+        * hrsh7th/cmp-cmdline
+        * L3MON4D3/LuaSnip
+        * saadparwaiz1/cmp_luasnip
+        * rafamadriz/friendly-snippets
+
+Syntax highlight
+    * nvim-treesitter/nvim-treesitter
+    * nvim-treesitter/nvim-treesitter-textobjects
+    * windwp/nvim-ts-autotag
+
+Color scheme
+    * catppuccin/nvim
+
+omnifunctions are filetype specific functions that provide completion suggestions.
 
 ## Unused (or nearly unused keys)
 

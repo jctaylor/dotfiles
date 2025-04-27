@@ -3,7 +3,10 @@ return {
         "nvim-telescope/telescope.nvim",
         dependencies = {
             "nvim-lua/plenary.nvim",
-            { 'nvim-telescope/telescope-fzf-native.nvim', build = 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build' },
+            {
+                'nvim-telescope/telescope-fzf-native.nvim',
+                build = 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build'
+            },
             "nvim-tree/nvim-web-devicons",
             "nvim-telescope/telescope-file-browser.nvim",
         },
@@ -62,9 +65,9 @@ return {
 
             -- LSP
             vim.keymap.set('n', '<leader>lr', "<cmd>Telescope lsp_references<cr>", { desc = "LSP references" })
-            vim.keymap.set('n', '<leader>lo', "<cmd>Telescope lsp_outgoing_calls<cr>", { desc = "LSP outgoing calls" })
-            vim.keymap.set('n', '<leader>li', "<cmd>Telescope lsp_incoming_calls<cr>", { desc = "LSP incoming calls" })
-            vim.keymap.set('n', '<leader>ld', "<cmd>Telescope diagnostics<cr>", { desc = "LSP diagnostics" })
+            -- vim.keymap.set('n', '<leader>lo', "<cmd>Telescope lsp_outgoing_calls<cr>", { desc = "LSP outgoing calls" })
+            --vim.keymap.set('n', '<leader>lr', "<cmd>Telescope lsp_incoming_calls<cr>", { desc = "LSP incoming calls" })
+            vim.keymap.set('n', '<leader>lo', "<cmd>Telescope diagnostics<cr>", { desc = "LSP diagnostics" })
         end,
     },
 }
