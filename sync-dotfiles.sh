@@ -1,8 +1,9 @@
 #!/bin/bash
 
 script_name=$(realpath "$0")
-script_dir=$( dirname "$script_name")
-script_name=$( basename "$script_name" )
+script_dir=$(dirname "$script_name")   # e.g. /home/user/dotfile
+sync_dir="$script_dir/home"
+script_name=$(basename "$script_name")
 
 usage="
 
@@ -12,82 +13,150 @@ Sync config files from $script_dir/home to \${HOME} directory.
 
 It tries to be smart about which file is authoritative.
 
-The default strategy is to use hardlinks for the files. This way you can edit the real config file and the repo version
-will be updated (assuming you are using a proper editor that edits a file as apposed to deleting and the recreating
-the file.  If the editor does replace the file, this script should do the right thing because the date of the edited
-file will be older than the corresponding repo file.
+There are 3 \"strategies\" that can be used:
+    1. copy (real file is a copy of the repo file)
+    2. symbolic_link (real file is a symbolic_link to the repo file)
+    3. hard_link (real file is a hard link to the repo file)
+
+The default strategy is to use hardlinks for the files. By using hard links, either the real file of the repo mirror
+can be edited and to change the config files. When using the \"copy\" stratgey, changes do not take effect until
+This argumenst assumes files are edited with a proper editor that actually edits a file as opposed to deleting the file
+and recreating a new one.
+The script should still do the correct thing since the time stamps will be used.
+
+The copy strategy can fail if you edit a repo file and a real file.
+
+TODO:   Maybe use commit time stamps pr hashes. If both the real file and the repo file have been changed then use a
+        merge program when syncing.
 
 
 OPTIONS:
 
-    NOTE: Options are a fuzzy match --h == -h == --help, -d == --d --dry == --dry-run
+    --help          Show this help end exit.
 
-    --help          Show this help
+    --dry-run       Dry run, show what would be done.
 
-    --dry-run       Dry run, show what would be done
+    --add FILE ...  Add FILE to dotfile control. Use this to add exiting files in HOME to dotfile control.
+                    If FILE starts with '-' (edge case!), prepend './' to the name so it is not interprreted as an option.
+                    This is not used for new files within the git repo (they are automaticaly in scope).
+
+    --verbose       Verbose output. Use multiple times for increased verbosity.
 
     --diff          Show differences between the repo and the installed files
 
-    --copy          Copy (not hard link) (TODO what if is already a hard link?)
+    --copy          Copy strategy
 
-    --symbolic      Create symbolic links
+    --symbolic      Symbolic link strategy
 
-    --add FILE ...  Add an existing file in the \$HOME to the repo (i.e. place it under dotfile control).
-                    NOTE: File names that start with '-' will be treated as an option not a filename.
-                    In that case, add the file to $script_dir manually.
+    --hard          Hard strategy (default)
 
-    --verbose       Verbose output.
+    --force         Force strategy (hard link, symbolic link or copy).
+                    Files previously synced by a different strategy with be re-synced with the current strategy.
+                    The default is to leave equivalent files alone.
+                    So some (or all) of the dotfiles are all hard links, they can be replaced by copies with:
+                    $script_name --copy --force
+
+    --interactive   Confirm before making changes
+
 "
-
 
 function fatal {
     # Call this if there is an unrecoverable error
-    echo "$*" >&2
+    echo "FATAL:$*" >&2
     exit 1
 }
 
+verbose=0
+function log {
+    # log [LEVEL] MESSAGE
+    if [[ "$1" =~ ^[0-9]$ ]]; then
+        level="$1"
+        shift
+    else
+        level=0  # default level
+    fi
+
+    if [ "$level" -le "$verbose" ]; then
+        echo "$*"
+    fi
+
+}
+
+
 # Script parameters
 strategy=hard_link   # diff, copy, hard_link
-verbose=0
-new_files=()   # An array of new files to add
-backup_dir=
-cmd=" "
-dry_run=""
+new_files=()         # array of new files to add to the repo
+backup_dir=""
+cmd_prefix=""
+force_strategy="no"
+dry=""
+interactive=no
 
 while [ -n "$1" ]; do
     case "$1" in
-        *-h* )   # match -h --h --help -h-anything
+        -h)
+            echo "ambiguous option --help --hard"
+            exit 1
+            ;;
+        *-he* )
             echo "$usage"
             exit 0
             ;;
+        *-ha*)
+            strategy="hard_link"
+            ;;
         -d)
-            fatal "ERROR: ambiguous option --dry-run or --diff"
+            echo "ambiguous option --dry-run or --diff"
+            exit 1
             ;;
         *-dr* )
-            cmd="echo dry run: "
-            dry_run="echo "
+            cmd_prefix="log 0 ==> "
+            dry=dry
             ;;
         *-di*)
-            # show differences
-            strategy="diff"
+            # show differences but don't change
+            strategy="show_diff"
             ;;
         *-c*)
-            strategy="copy"
+            # copy file when sync needed
+            strategy="copy_file"
+            ;;
+        *-s*)
+            # copy file when sync needed
+            strategy="symbolic_link"
             ;;
         *-b*)
             backup_dir="$script_dir/backup$(date +%Y-%m-%d_%H.%M.%S)"
             ;;
-        -v)
-            verbose=$(("$verbose" + 1))
+        *-v*)
+            verbose=$(($verbose + 1))
+            if [ $verbose -gt 5 ]; then
+                set -x
+                verbose=5
+                echo "Maximum verbosity is 5"
+            fi
+            ;;
+        *-f*)
+            force_strategy=force
             ;;
         *-a*)
             # All options after --add the don't start with '-' are considered files.
             # If you need to add a file that starts with '-' you can give the full path or add it manually
-            echo "${2:0:1}"
-            while [ -n "$2" ] && [ "${2:0:1}" != "-" ]; do 
-                new_files+=("$2")
+            shift
+            while [ -n "$1" ] && [ "${2:0:1}" != "-" ]; do
+                file=$(realpath $1)
+                if [ -d "$1" ]; then
+                    # Add a directory
+                    new_files+=($(find $1 -type f))
+                elif [ -f "$1" ]; then
+                    # Add a single file
+                    new_files+=($1)
+                fi
                 shift
             done
+            ;;
+        *-i*)
+            confirm=confirm
             ;;
         *)
             fatal "Unknown option $1 $usage" >&2
@@ -96,133 +165,174 @@ while [ -n "$1" ]; do
     shift
 done
 
-if [ "$verbose" -gt 2 ]; then
-    set -x
-    if [ "$verbose" -gt 9 ]; then
-        verbose=9
-    fi
+if [ -n "$dry" ] && [ $verbose = 0 ]; then 
+    verbose=1
 fi
 
+threshold=$(( 5 - $verbose ))
 
+# Check that script_dir is in the git dir
+cd "$script_dir" || fatal "ERROR: could not switch to $script_dir"
+git rev-parse --show-toplevel >/dev/null || fatal "ERROR: This script needs to be run from the dotfile repo"
+log 2 "
+Running $script_name from $script_dir
+=====================================
+"
+
+# Work from this script directory
+
+# Set the sync command depending on strategy
 case $strategy in
-    hard_link)
-        cmd+="ln -f -n "
+    hard_link)  ## What if the dotfile repo is on a different file system?
+        sync_cmd="ln -f -n "
         ;;
     symbolic_link)
-        cmd+="ln -s -f -n "
+        sync_cmd="ln -s -f -n "
         ;;
     copy_file)
-        cmd+="cp -f "
+        sync_cmd="cp -f "
         ;;
     show_diff)
-        cmd+="diff "
+        sync_cmd="diff_func "
         ;;
     *)
         fatal "ERROR: not valid strategy"
         ;;
 esac
 
+function run_cmd {
 
-set -u
-
-function log {
-    # log [LEVEL] MESSAGE
-    if [[ "$1" =~ ^[0-9]$ ]]; then
-        # The first argument is a number
-        level="$1"
-        shift
+    if [ $confirm = confirm ]; then
+        echo "RUN: $*"
+        echo -n "Confirm [y/n]: " && read "x" && [ "$x" == y ] && $*
     else
-        level=0  # default level
+        $cmd_prefix $*
+        if [ ! "$dry" = dry ]; then
+            log 2 "$*"
+        fi
     fi
-    if [ "$level" -ge "$verbose" ]; then
-        return
-    fi
-    echo "$*"
 }
 
 
+function diff_func {
+    echo "
+diff $1 $2
+========================================================= "
+    if [ ! -f $1 ]; then
+        echo "File $1 does not exist"
+    elif [ ! -f $2 ]; then
+        echo "File $2 does not exist"
+    fi
+    diff $1 $2 || true
+    echo "
+
+
+    "
+}
+
+
+# Ignore backup dir if this is just a diff
+if [ "$strategy" = diff ] && [ -n "$backup_dir" ]; then
+    log 1 "backup directory option is ignored when \"--diff\" option is set"
+    backup_dir="" # makes no sense to backup when just comparing files
+fi
+
+# Create the backup dir
 if [ -n "$backup_dir" ]; then
-    log 1 "Creating backup directory $backup_dir"
-    mkdir -p "$backup_dir" || fatal "ERROR: Could not create backup directory $backup_dir"
+    log 2 "Creating backup directory $backup_dir"
+    run_cmd mkdir -p "$backup_dir" || fatal "ERROR: Could not create backup directory $backup_dir"
 fi
 
-if [ "$strategy" = diff ]; then
-    if [ -n "$backup_dir" ]; then
-        log 2 backup directory ignored if subcommand is \"diff\"
+total_file_count=0
+changed_file_count=0
+# sync_file
+#
+# Contains all the logic to handle syncing a particular file based on the requested strategy.
+#
+# This is the only place in this script that can modify dotfiles.
+#
+# $1 is the file (realpath) of a real file or a repo file
+function sync_file {
+
+    # Get the filename pair
+    real=${file/${sync_dir}/${HOME}}   # Real path
+    repo=${real/${HOME}/${sync_dir}}   # Repo path
+
+    if [ ! -f "$real" ] && [ ! -f "$repo" ]; then
+        fatal "ERROR: Missing file: \$1 $1 real file \"$real\" repo file \"$repo\""
     fi
-    backup_dir="" # make no sense to backup when just comparing files
-fi
 
+    # Determine which file is source and which is the destination.
+    src_file=""
+    dst_file=""
+    dst_dir=""  # Not set when changing links. It's used to check the directory exists
+    if [ -L "$real" ] && [ "$real" -ef "$repo" ]; then
+        # Case: symbolic link
+        log 3 Symbolic link $real to $repo
+        if [ $force_strategy = force ] && [ ! $strategy = symbolic_link ]; then
+            log 2 "Replacing symbolic link for \"$real\""
+            src_file=$repo
+            dst_file=$real
+        fi
+    elif [ "$real" -ef "$repo" ]; then
+        # Case: hard link
+        log 3 Hard link $real to $repo
+        if [ $force_strategy = force ] && [ ! $strategy = hard_link ]; then
+            log 2 "Replacing hard link for \"$real\""
+            src_file=$repo
+            dst_file=$real
+        fi
+    elif [ "$real" -nt "$repo" ] && ! cmp -s $real $repo; then
+        # Case: files differ and the real file is newer (or repo file does not exist)
+        log 3 $real is NEWER than $repo
+        src_file=$real
+        dst_file=$repo
+        dst_dir=$(dirname $repo)
+    elif [ "$repo" -nt "$real" ] && ! cmp -s $real $repo; then
+        # Case: files differ and the repo file is newer (or real file does not exist)
+        log 3 $repo is NEWER than $real
+        src_file=$repo
+        dst_file=$real
+        dest_dir=$(dirname $real)
+        if [ -d "$backup_dir" ] && [ -f $real ]; then
+            # make a backup
+            # TODO maybe don't backup if it matches a previously checked in version.
+            log 3 Backing up $real to $backup_dir
+            run_cmd cp $real $backup_dir || fatal "ERROR: failed to make a backup of $real to $backup_dir"
+        fi
+    else
+        log 1 "WARNING: Could not determine how to sync \"$1\""
+        return 1
+    fi
 
+    total_file_count=$(( $total_file_count + 1))
+    if [ -z "$src_file" ]; then
+        log 2 "Nothing to do for $real"
+    else
+        changed_file_count=$(( $changed_file_count + 1))
+        [ -n "$dst_dir" ] && ( run_cmd mkdir -p $dst_dir || fatal "ERROR: Could not create desination directory $dst_dir" ) || true
+        # DOES NOT WORK FOR DIFF $sync_cmd $src_file $dst_file || fatal "Command $sync_cmd FAILED!"
+        run_cmd $sync_cmd $src_file $dst_file
+    fi
 
-function repo_from_real_file {
-    # Convert an installed path into repo path
-    echo "$1" |  sed "s#${HOME}#${script_dir}/home#"
 }
 
-
-function real_from_repo_file {
-    # Convert a repo path into installed path
-    echo "$1" |  sed "s#${script_dir}/home#${HOME}#"
-}
-
-
-# Work from this script directory
-cd "$script_dir" || fatal "ERROR: could not switch to $script_dir"
-
-log 1 "
-Running $script_name from $script_dir
-"
-
-# Make any needed directories in HOME. 
-# If there is a directory in dotfile/home that is not in ${HOME}, create it in HOME.
-while read -r src_dir; do
-    dir_path="${src_dir//"$script_dir/home"/"${HOME}"}"
-    log 2 "making sure $dir_path exists"
-    if [ -n "$dir_path" ] && [ ! -d "$dir_path" ]; then
-        $dry_run mkdir -p "$dir_path"
-    fi
-done < <(find home -type d )
 
 
 # Sync files either direction. Take the newer file as authoritative
-for repo_file in $(find home -type f -print0 | xargs -0 realpath ); do
-    real_file="$(real_from_repo_file "$repo_file")"
-    if [ -f "$real_file" ] && [ "$real_file" -nt "$repo_file" ]; then
-        # copy or link real file to repo
-        log 1 "$cmd $real_file $repo_file"
-        $cmd "$real_file" "$repo_file"
-    elif [ "$repo_file" -nt "$real_file" ]; then
-        # copy or link repo file to real file
-        log 1 "$cmd $repo_file $real_file"
-        $cmd "$repo_file" "$real_file"
-    elif [ "$repo_file" -ef "$real_file" ]; then
-        # they are the same file, nothing to do
-        log 2 "$repo_file  $real_file are the same"
-    else
-        echo >&2 "WARNING: check $repo_file and $real_file manualy"
-    fi
+repo_files=($(find home -type f -print0 | xargs -0 realpath))
+
+for file in ${repo_files[@]} ${new_files[@]}; do
+    set -u
+    sync_file $file
 done
 
-# Add new files
-# New files that exist in HOME can be added to the repo to track with the --add option
-if [ ${#new_files[@]} -ne 0 ]; then 
-    for new_file in "${new_files[@]}"; do
-        if [ -f "$new_file" ]; then
-            real_file="$(realpath "$new_file")"
-            repo_file="$(repo_from_real_file "$real_file" )"
-            if [ -f "$repo_file" ]; then
-                echo >&2 "WARNING: Trying to add a new file \"${new_file}\" that is already tracked"
-            else
-                $dry_run cp "$real_file" "$repo_file"
-                git add "$repo_file"
-            fi
-        else
-            echo >&2 "WARNING: file \"$real_file\" not found"
-        fi
-    done
-    git status
-fi
 
+log 1 "
+$script_name finished
+Total file count: $total_file_count
+Different files: $changed_file_count
+=====================================
+"
 exit 0
 
