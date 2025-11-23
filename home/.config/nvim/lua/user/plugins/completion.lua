@@ -4,8 +4,8 @@ return {
     "hrsh7th/nvim-cmp",
     event = "InsertEnter",
     dependencies = {
-        "neovim/nvim-lspconfig",
-        "hrsh7th/cmp-nvim-lsp",
+        -- "neovim/nvim-lspconfig", -- not needed in nvim 0.11
+        "hrsh7th/cmp-nvim-lsp", -- get completions from LSPs
         "hrsh7th/cmp-buffer", -- source for text in buffer
         "hrsh7th/cmp-cmdline", -- command line 
         "hrsh7th/cmp-path", -- source for file system paths
