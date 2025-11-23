@@ -90,7 +90,8 @@ backup_dir=""
 cmd_prefix=""
 force_strategy="no"
 dry=""
-interactive=no
+confirm=no
+
 
 while [ -n "$1" ]; do
     case "$1" in
@@ -234,7 +235,7 @@ diff $1 $2
 # Ignore backup dir if this is just a diff
 if [ "$strategy" = diff ] && [ -n "$backup_dir" ]; then
     log 1 "backup directory option is ignored when \"--diff\" option is set"
-    backup_dir="" # makes no sense to backup when just comparing files
+    backup_dir="" # probably makes no sense to backup when just comparing files
 fi
 
 # Create the backup dir
@@ -287,7 +288,7 @@ function sync_file {
         log 3 $real is NEWER than $repo
         src_file=$real
         dst_file=$repo
-        dst_dir=$(dirname $repo)
+        dst_dir=$(dirname "$repo")
     elif [ "$repo" -nt "$real" ] && ! cmp -s $real $repo; then
         # Case: files differ and the repo file is newer (or real file does not exist)
         log 3 $repo is NEWER than $real
