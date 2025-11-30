@@ -115,25 +115,6 @@ return {
                 })
         })
 
-        -- Setup lspconfig.based completion
-
-        local capabilities = require('cmp_nvim_lsp').default_capabilities()
-
-        require('lspconfig')['pylsp'].setup {
-            capabilities = capabilities
-        }
-
-        require('lspconfig')['lua_ls'].setup {
-            capabilities = capabilities
-        }
-
-        require('lspconfig')['bashls'].setup {
-            capabilities = capabilities
-        }
-
-        require('lspconfig')['clangd'].setup {
-            capabilities = capabilities
-        }
 
     end,
 }

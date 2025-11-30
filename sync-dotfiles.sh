@@ -259,6 +259,8 @@ function sync_file {
     real=${file/${sync_dir}/${HOME}}   # Real path
     repo=${real/${HOME}/${sync_dir}}   # Repo path
 
+    log 3 "Real: $real   Repo: $repo"
+
     if [ ! -f "$real" ] && [ ! -f "$repo" ]; then
         fatal "ERROR: Missing file: \$1 $1 real file \"$real\" repo file \"$repo\""
     fi
@@ -267,8 +269,8 @@ function sync_file {
     src_file=""
     dst_file=""
     dst_dir=""  # Not set when changing links. It's used to check the directory exists
-    if [ -L "$real" ] && [ "$real" -ef "$repo" ]; then
-        # Case: symbolic link
+    if [ -L "$real" ]; then
+        # Case: symbolic link, nothing to do unless we are forcing a different strategy
         log 3 Symbolic link $real to $repo
         if [ $force_strategy = force ] && [ ! $strategy = symbolic_link ]; then
             log 2 "Replacing symbolic link for \"$real\""
@@ -276,7 +278,7 @@ function sync_file {
             dst_file=$real
         fi
     elif [ "$real" -ef "$repo" ]; then
-        # Case: hard link
+        # Case: hard link, nothing to do unless we are forcing a different strategy
         log 3 Hard link $real to $repo
         if [ $force_strategy = force ] && [ ! $strategy = hard_link ]; then
             log 2 "Replacing hard link for \"$real\""
@@ -288,30 +290,41 @@ function sync_file {
         log 3 $real is NEWER than $repo
         src_file=$real
         dst_file=$repo
-        dst_dir=$(dirname "$repo")
     elif [ "$repo" -nt "$real" ] && ! cmp -s $real $repo; then
         # Case: files differ and the repo file is newer (or real file does not exist)
         log 3 $repo is NEWER than $real
         src_file=$repo
         dst_file=$real
-        dest_dir=$(dirname $real)
         if [ -d "$backup_dir" ] && [ -f $real ]; then
             # make a backup
             # TODO maybe don't backup if it matches a previously checked in version.
             log 3 Backing up $real to $backup_dir
             run_cmd cp $real $backup_dir || fatal "ERROR: failed to make a backup of $real to $backup_dir"
         fi
+    elif cmp -s "$real" "$repo" ; then
+        log 2 Files are equivalent copies of each other
+        if [ $force_strategy = force ] && [ ! $strategy = copy ]; then
+            log 2 Forcing strategy  $strategy
+            src_file=$repo
+            dst_file=$real
+        fi
     else
         log 1 "WARNING: Could not determine how to sync \"$1\""
         return 1
     fi
 
+    log 1 ""
+
     total_file_count=$(( $total_file_count + 1))
     if [ -z "$src_file" ]; then
         log 2 "Nothing to do for $real"
     else
+        dst_dir=$(dirname "$dst_file")
         changed_file_count=$(( $changed_file_count + 1))
-        [ -n "$dst_dir" ] && ( run_cmd mkdir -p $dst_dir || fatal "ERROR: Could not create desination directory $dst_dir" ) || true
+        if [ ! -d "$dst_dir" ]; then
+            log 2 Destination directory $dst_file $dst_dir does not exist, creating it
+            run_cmd mkdir -p "$dst_dir" || fatal "ERROR: Could not create desination directory $dst_dir"
+        fi
         # DOES NOT WORK FOR DIFF $sync_cmd $src_file $dst_file || fatal "Command $sync_cmd FAILED!"
         run_cmd $sync_cmd $src_file $dst_file
     fi
