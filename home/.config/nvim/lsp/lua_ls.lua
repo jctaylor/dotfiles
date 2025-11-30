@@ -1,9 +1,11 @@
 return {
-    cmd = { "lua_ls"},
+    cmd = { "lua-language-server"},
     filetypes = { "lua" },
     settings = {
-        diagnostics = {
-            globals = { "vim" },
+        Lua = {
+            diagnostics = {
+                globals = { "vim" },
+            },
         },
     }
 }

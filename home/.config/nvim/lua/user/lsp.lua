@@ -1,7 +1,7 @@
 -- Global lsp setup
 -- see: https://gpanders.com/blog/whats-new-in-neovim-0-11/
 
-vim.lsp.enable( { 
+vim.lsp.enable( {
     'clangd',
     'pylsp',
     'lua_ls',
