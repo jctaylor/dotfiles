@@ -1,6 +1,52 @@
 # vimconfig
 My vim comfig
 
+2025-12-15 Lets do this again for nvim 0.11
+
+Goals:
+    * LSP for lua, python, C/C++
+    * Formatters for the same
+    * LSP completion
+    * snippets completion
+    * 
+    * DAP debug and DAP-UI
+    * no Mason
+    * no Mason-lspconfig
+    * no nvim-lspconfig
+    * good completion (use luasnip for snippets)
+    * use blink.nvim instead of nvim-cmp.nvim (blink is supposed to be faster and easier to config).
+
+Folke's snacks? Does this bring in too much?
+
+
+none-lsp.nvim  -- To add 
+lazydev.nvim -- So LSP works properly when editing nvim config files (vim global is known and expansions).
+
+## References
+
+https://gpanders.com/blog/whats-new-in-neovim-0-11/#lspa
+https://lugh.ch/switching-to-neovim-native-lsp.html
+https://github.com/josean-dev/dev-environment-files/tree/main/.config/nvim
+
+
+## Mason, Mason-lspconfig, nvim-lspconfig
+
+Mason is a packaged manager for external LSP and LSP-related packages
+nvim-lspconfig contains a set of good default LSP configurations for many LSP
+mason-lspconfig  automatically configures LSPs loaded by Mason (and provides some more LSP configs apparently)
+
+Without this trio, I need to:
+    1. Install LSPs manually. Refer to [Mason registry](https://mason-registry.dev/registry/list) to find an LSP.
+    2. Put LSP config in .config/nvim/lsp/<LSP-name>.lua
+    3. Add enable <LSP-name> in .config/nvim/user/lsp.lua
+
+## lazydev (for good LSP support when editing nviom configs)
+
+folke/lazydev.nvim -- tweaks Lua LSP for editing .config/nvim/  (i.e. global "vim" symbol)
+
+
+
+
 
 ## Priorities:
 

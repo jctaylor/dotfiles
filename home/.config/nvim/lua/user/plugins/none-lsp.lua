@@ -1,0 +1,24 @@
+-- none-ls provides diagnostics, code formatting, refactoring via the builtin in LSP client
+return {
+    {
+        "nvimtools/none-ls.nvim",
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+            "nvimtools/none-ls-extras.nvim"
+        },
+        opts = function(_, opts)
+            local null_ls = require("null-ls")
+            opts.root_dir = opts.root_dir
+            or require("null-ls.utils").root_pattern(".null-ls-root", ".neoconf.json", "Makefile", ".git")
+            opts.sources = vim.list_extend(opts.sources or {}, {
+                null_ls.builtins.formatting.stylua,
+                null_ls.builtins.completion.spell,
+                null_ls.builtins.formatting.black,  -- @TODO change this to blackd (single server for nvim instances)
+                null_ls.builtins.code_actions.refactoring, -- requires visually selecting the code you want to refactor and calling :'<,'>lua vim.lsp.buf.code_action()
+                null_ls.builtins.diagnostics.mypy,
+                -- Consider adding isort/isortd, mypy
+            })
+        end,
+
+    }
+}

@@ -90,7 +90,7 @@ backup_dir=""
 cmd_prefix=""
 force_strategy="no"
 dry=""
-interactive=no
+confirm=no
 
 while [ -n "$1" ]; do
     case "$1" in
