@@ -16,8 +16,9 @@ HISTCONTROL=ignoreboth
 shopt -s histappend
 
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=10000
-HISTFILESIZE=100000
+HISTSIZE=100000
+HISTFILESIZE=20000000
+HISTTIMEFORMAT="%F_%T "
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -89,8 +90,6 @@ if ! shopt -oq posix; then
   elif [ -f /etc/bash_completion ]; then
     . /etc/bash_completion
   fi
-else
-	echo "No bash completion"
 fi
 
 ##################################################################################
@@ -112,13 +111,13 @@ function prompt_cmd
         PS1+="\[\e[1;90;104m\] ${gitRepo} \[\e[1;90;44m\] ${gitBranch} \[\e[m\] "
     fi
     #PS1+="[\j]\n\[\e[94m\]\h  \w/\[\e[0m\]\n\[\e[32m\]\\$ \[\e[0m\]"
-    PS1+="[\j] \[\e[32;m\](\h) \[\e[94m\]\w/\[\e[0m\]\n\[\e[32m\]\\$ \[\e[0m\]"
+    PS1+="[\j] \[\e[32m\](\h) \[\e[94m\]\w/\[\e[0m\]\n\[\e[32m\]\\$ \[\e[0m\]"
 
     # List background jobs
     #jobs
 
     # Set the window name and icon?
-    echo -ne "\033]0;MAC     $(pwd| sed 's#/home/jtaylor/c4a/#Project: #' | sed 's#/home/jtaylor#~#' )\007"
+    echo -ne "\033]0;$(pwd| sed 's#/home/jtaylor/c4a/#Project: #' | sed 's#/home/jtaylor#~#' )\007"
 }
 
 PROMPT_COMMAND='prompt_cmd'
@@ -131,4 +130,18 @@ PROMPT_COMMAND='prompt_cmd'
 
 # Use vi style command line editing
 set -o vi
+
+
+PATH="/home/jason/perl5/bin${PATH:+:${PATH}}"; export PATH;
+PERL5LIB="/home/jason/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+PERL_LOCAL_LIB_ROOT="/home/jason/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
+PERL_MB_OPT="--install_base \"/home/jason/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=/home/jason/perl5"; export PERL_MM_OPT;
+
+PYENV_ROOT=${HOME}/.conf/penv
+
+# Note this modifies PATH so it needs to be after the last PATH modification
+if command -v pyenv 1>/dev/null 2>&1; then
+    eval "$(pyenv init - bash)"
+fi
 
