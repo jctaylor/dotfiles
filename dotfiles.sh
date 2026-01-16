@@ -1,18 +1,17 @@
 #!/bin/bash
 
+# TODO:
+#  [ ] Consolidate --script and --dry-run. Over time they became almost the same thing
+#
+
 # Set some normalized paths
-script_name=$(realpath "$0")
-script_dir=$(dirname "$script_name")
-script_name=$(basename "$script_name")
-dotfile_path=$( realpath ${script_dir}/.. )  # Full path used with the --add option 
+script_name=$( realpath "$0" )
+script_dir=$( dirname "$script_name" )
+script_name=$( basename "$script_name" )
+dotfile_path=$( realpath "${script_dir}"/.. )  # Full path used with the --add option 
 backup_dir="${script_dir}/backup"
 
 out_script="${script_dir}/_update.sh"
-
-# Make sure we are in dotfiles directory
-cd -P ${script_dir}/home
-
-set -u
 
 usage="
 
@@ -117,13 +116,14 @@ EXAMPLES:
 #### TODO Need to deal with files removed from the dotfiles repo. what's the best way to keep track?
 
 # Main script parameters
-diff=no       # This is not a "diff" command
-dryrun=no     # Not doing a dry run
-force=no      # Don't modify files that are consistent but using a different strategy
-script=no
-strategy=symb # hard, copy
-trust=time    # repo, home  Trust time stamps, repo version, or home version
-verbose=0     # Verbosity level
+diff="no"        # This is not a "diff" command
+dryrun="no"      # Not doing a dry run
+force="no"       # Don't modify files that are consistent but using a different strategy
+script="no"      # Updating dotfiles now, not writing a script to do it (FIXME Maybe this should be the default).
+strategy="symb"  # hard, copy
+status="no"      # We are not just getting the status
+trust="time"     # repo, home  Trust time stamps, repo version, or home version
+verbose=0        # Verbosity level
 
 
 fatal() {
@@ -147,11 +147,14 @@ message() {
     if [ "$level" -le "$verbose" ]; then
         echo "$*" >&2  # Must be stderr because it is used in functions where the message is captured
         if [ $script = yes ]; then
-            echo "# $*" >> $out_script
+            echo "# $*" >> "$out_script"
         fi
     fi
 }
 
+
+# Make sure we are in dotfiles directory
+cd -P "${script_dir}"/home || fatal  "${script_dir}/home missing"
 
 message 3 Default strategy is to make symbolic links
 
@@ -193,28 +196,27 @@ while [ "$#" -gt 0 ]; do
             elif [ -f "${path}" ]; then
                 files_to_add+=( "${path}" )
             elif [ -d "${path}" ]; then
-                IFS=$'\n' files_to_add+=( $( find "${path}" -type f ) )
+                mapfile -t -O "${#files_to_add[@]}" files_to_add < <( find "${path}" -type f )
             else
                 fatal "Failed to add \"${path}\". It is not a regular file or directory."
             fi
             ;;
 
         *-b*)    # Turn off backups
-            backup=no
             backup_dir=""
             ;;
 
         *-c*)
-            strategy=copy
+            strategy="copy"
             message 3 "Setting strategy to copy links"
             ;;
 
         *-dr*)
-            dryrun=yes
+            dryrun="yes"
             ;;
 
         *-di*)
-            strategy=diff
+            strategy="diff"
             message 2 "Will show diffs. No files will be updated."
             ;;
 
@@ -222,8 +224,12 @@ while [ "$#" -gt 0 ]; do
             fatal "Ambiguous argument \"$1\" could be --dry-run or --diff"
             ;;
 
+        *-f*)
+            force="yes"
+            ;;
+
         *-ha*)    # use hard links
-            strategy=hard
+            strategy="hard"
             message 3 "Setting strategy to hard links"
             ;;
 
@@ -232,7 +238,7 @@ while [ "$#" -gt 0 ]; do
             ;;
 
         *-ho*)   # Trust home files
-            trust=home
+            trust="home"
             message 1 "Ignoring time stamps. Trusting home directory (real) version"
             ;;
 
@@ -241,32 +247,32 @@ while [ "$#" -gt 0 ]; do
             ;;
 
         *-sc*)  # Script file
-            script=yes
+            script="yes"
             rm -f "$out_script"
-            message 3 "Setting strategy to symbolic links."
+            message 3 "Generate script \"${out_script}\"to implement update."
             ;;
 
         *-st*)  # Status
-            status=yes
+            status="yes"
             message 3 "Setting strategy to symbolic links."
             ;;
 
         *-sy*)  # Symbolic
-            strategy=symb
+            strategy="symb"
             message 3 "Setting strategy to symbolic links."
             ;;
 
         *-s*)
-            fatal "Ambigous argument \"$1\" could be, --symbolic, --static, or --script"
+            fatal "Ambiguous argument \"$1\" could be, --symbolic, --static, or --script"
             ;;
 
         *-r*)  # Assume repo file are good (ignore time stamps)
-            trust=repo
+            trust="repo"
             message 1 "Ignoring time stamps. Trusting repo version"
             ;;
 
         *-v*)
-            verbose=$(($verbose + 1))
+            verbose=$(( verbose + 1 ))
             message 2 "verbose level set to $verbose"
             ;;
 
@@ -282,20 +288,19 @@ while [ "$#" -gt 0 ]; do
 
             # Add files that match $1
             num=${#temp_file_list[@]}  # Note the number of files before adding "$1"
-
-            temp_file_list+=( $( find . -type f -name "$1" | sed 's#..##' ) )
+            mapfile -t -O "${#temp_file_list[@]}" temp_file_list < <( find . -type f -name "$1" | sed 's#..##' )
 
             # Add files from directories that match "$1"
             # This code allows for more than one directory matching "$1", however,
             # that is not case when this is written
-            dirs=( $( find . -type d -name "$1" ) )
+            mapfile -t dirs < <( find . -type d -name "$1" )
             if [ -n "${dirs[0]}" ] ; then
                 # Add all files from all the dirs found (probably only one!)
-                temp_file_list+=( $( find "${dirs[@]}" -type f | sed 's#..##' || true ) )
+                mapfile -t -O "${#temp_file_list[@]}" temp_file_list < <( find "${dirs[@]}" -type f | sed 's#..##' || true ) 
                 for dir in "${dirs[@]}"; do
                     # Add any files that appear in the deleted_files_list 
                     # for this $dir
-                    temp_deleted_list+=( $(echo "$deleted_git_files" | grep "${dir}" )  )
+                    mapfile -t -O "${#temp_deleted_list[2]}" temp_deleted_list < <( echo "$deleted_git_files" | grep "${dir}" )
                 done
             fi
 
@@ -309,11 +314,6 @@ while [ "$#" -gt 0 ]; do
     shift
 done
 
-
-if [ -n "${backup_dir}" ]; then
-    mkdir -p "${backup_dir}"
-fi
-
 repo_files=()
 delete_files=()
 
@@ -321,12 +321,12 @@ delete_files=()
 if [ "${#temp_file_list[@]}" = 0 ]; then
     # This is the default. (Should it be?)
     # All repo files are candidates for updating.
-    message 1 No files where specified. All repo files are considered.
+    message 1 "No files where specified. All repo files are considered."
     mapfile -t repo_files < <( find . -type f | sed 's#..##' )
 
-    delete_files=( $deleted_git_files )
+    delete_files=( "${deleted_git_files}" )
 else
-    message 3 Adding files to the update list
+    message 3 "Adding files to the update list."
     # Only files specified on the command line are to be updated.
     # Create the repo_file list without any duplicate (temp_file_list may have some)
     for file in "${temp_file_list[@]}"; do
@@ -334,48 +334,48 @@ else
         for repo_file in "${repo_files[@]}"; do
             if [ "$repo_file" = "$file" ]; then
                 found=1
-                message 3 $file specified again
+                message 3 "$file specified again."
                 break
             fi
         done
         if [ $found = 0 ]; then
-            message 3 Adding file \"$file\" to the list update to
+            message 3 "Adding file \"$file\" to the list update to"
             repo_files+=("$file")
         fi
     done
-    message 3 Adding files to the delete list
+    message 3 "Adding files to the delete list"
     # Only files specified on the command line are to be updated.
     # Create the repo_file list without any duplicate (temp_file_list may have some)
-    for file in "${temp_deleted_files[@]}"; do
+    for file in "${temp_deleted_list[@]}"; do
         found=0
         for repo_file in "${delete_files[@]}"; do
             if [ "$repo_file" = "$file" ]; then
                 found=1
-                message 3 $file specified again
+                message 3 "$file specified again"
                 break
             fi
         done
         if [ $found = 0 ]; then
-            message 3 Adding file \"$file\" to the delete list
+            message 3 "Adding file \"$file\" to the delete list"
             delete_files+=("$file")
         fi
     done
 fi
 
 
-if (( $verbose > 2 )) ; then
-    echo "File update list:" >&2
+if (( verbose > 2 )) ; then
+    echo "Files that might need to be updated:" >&2
     for file in "${repo_files[@]}" ; do
         echo "    \"$file\"" >&2
     done
     if [ "${#files_to_add[@]}" != 0 ]; then
-        echo "File add list:" >&2
+        echo "Files to add to dotfiles management:" >&2
         for file in "${files_to_add[@]}"; do
             echo "    \"$file\"" >&2
         done
     fi
     if [ "${#delete_files[@]}" != 0 ]; then
-        echo "File delete list: " >&2
+        echo "Files that might need to be removed: " >&2
         for file in "${delete_files[@]}"; do
             echo "    \"$file\"" >&2
         done
@@ -388,18 +388,26 @@ fi
 
 do_cmd() {
     if [ $script = yes ]; then
+        # Should quote file names for the case where the path contains
+        # legitimate whitespace (not tested)
         local args=("$@")
         args[-1]="\"${args[-1]}\""
+        # If there are 2 or more arguments there are 2 file names
         if [ $# -gt 2 ]; then
             args[-2]="\"${args[-2]}\""   # rm command only has one file argument
         fi
+        message 3 "script: ${args[*]}"
         echo "${args[@]}" >> "$out_script"
     elif [ $dryrun = yes ]; then
-        echo "    ==> $@"
-    elif [ $status=no ]; then
+        echo "    ==> $*"
+    elif [ "${status}" = "no" ]; then
+        # It's not a "script", "dry run" or "status" request
+        # so run the actual command ...
+        message 2 "Running $*"
         command "$@"
+    else
+        message 1 "Ignoring command: $*"
     fi
-    # if status=yes do nothing here!
 }
 
 rm() {
@@ -418,18 +426,17 @@ diff() {
     do_cmd diff "$@"
 }
 
-mv() {   # not actually used but just in case it get added in
-    if [ $dryrun = no ]; then
-        command mv "$@"
-    elif [ $script = yes ]; then
-        echo rm "$@" >> "$out_script"
-    else
-        echo "  ==>  " mv "$@"
-    fi
-}
-
+# mv command is not used. 
+# To check when editing this script search
+#    /^ \+mv
+#    /^[^#]*\<mv\>
+#mv() {   # not actually used but just in case it get added in
+#    do_cmd mv "$@"
+#}
 
 # Given the "repo" file, return path of the equivalent "real" file
+# NB Unlike "repo_file" this is the full path for where the dotfile 
+# should end up
 real_from_repo() {
     echo "${HOME}/$1"
     # This function was more complicate that a trivial string concatenation in a previous version
@@ -442,66 +449,77 @@ repo_modified=no
 # Get the file status
 # Input repo filename
 file_status() {
-    local repo_file="$1"
-    local real_file="$(real_from_repo "$repo_file")"
-    local status=unknown
+    local repo_file
+    local real_file
+    local status
+
+    repo_file="$1"
+    real_file="$(real_from_repo "$repo_file")"
+    status=unknown
 
     if [ ! -f "$repo_file" ]; then
         ls -l
-        fatal "Repo file: \"$repo_file\" does not exist in " $(pwd)
+        fatal "Repo file: \"$repo_file\" does not exist in $(pwd)"
     fi
 
     message 3 "Checking file \"$repo_file\" status"
     # compare the files. The first find the cases where no update is needed
     if [ "${real_file}" -ef "${repo_file}" ]; then
         # real file is a hard link to repo
-        status=hard
-        needs_update=no
+        status="hard"
+        needs_update="no"
+
     elif [ -h "${real_file}" ]; then
         # real file is a symbolic link to the repo file
-        status=symb
-        needs_update=no
+        status="symb"
+        needs_update="no"
+
     elif cmp --silent "${repo_file}" "${real_file}" &>/dev/null; then
         # two independent files that are the same
-        status=copy
-        needs_update=no
+        status="copy"
+        needs_update="no"
+
     elif [ ! -f "${real_file}" ]; then
         # The real file is missing.
-        status=missing
-        needs_update=update_real
+        status="missing"
+        needs_update="update_real"
+
     elif [ $trust = time ] && [ "${real_file}" -nt "${repo_file}" ]; then
         # real file is newer (edited outside the repo)
-        status=diff
-        needs_update=update_repo
+        status="diff"
+        needs_update="update_repo"
+
     elif [ $trust = time ] && [ "${repo_file}" -nt "${real_file}" ]; then
         # repo file is newer
-        status=diff
-        needs_update=update_real
+        status="diff"
+        needs_update="update_real"
+
     elif [ $trust = repo ] ; then
         # The files differ and we are trusting the repo version so
         # the real version needs updating.
-        status=diff
-        needs_update=udpate_real
+        status="diff"
+        needs_update="udpate_real"
+
     elif [ $trust = real ]; then
         # The files differ and we are trusting the real version so
         # the repo version needs updating.
-        status=diff
-        needs_update=update_repo
+        status="diff"
+        needs_update="update_repo"
     else
         # I think the only way to get here is if trust ∉ {"time","real","repo"}
         fatal "Missed a test case for ${real_file} and ${repo_file},  trust = ${trust}"
     fi
 
-    if [ $needs_update = update_real ] && [ -f "${real_file}" ]; then
+    if [ "${needs_update}" = "update_real" ] && [ -f "${real_file}" ]; then
         # Record hash and timestamp of the real file in
         # "previous" file.
-        hash=( $(md5sum "${real_file}") )
+        mapfile -t hash < <( md5sum "${real_file}" )
         timeStamp="$( stat -c %y "${real_file}" | sed 'y/ :/_./' )"
-        echo $timeStamp ${hash[0]} ${hash[1]}  >> "${script_dir}/previous"
+        echo "${timeStamp} ${hash[0]} ${hash[1]}"  >> "${script_dir}/previous"
         # Since we only want to backup real files that actually change contents
         # do it here. 
-        if [ backup = yes ]; then
-            cp "${real_file}" "${backup_dir}"
+        if [ -n "${backup_dir}" ]; then
+            cp --parents "${real_file}" "${backup_dir}"
         fi
     fi
 
@@ -534,37 +552,34 @@ do_update() {
     fi
 
     if [ -f "$dst" ]; then
-        message 3 $( md5sum $src $dst )
+        message 3 "$( md5sum "${src}" "${dst}" )"
     else
-        message 3 $( md5sum $src )
+        message 3 "$( md5sum "${src}" )"
     fi
 
-    if [ $diff = no ] && [ -f "$dst" ] ; then
+    if [ "${diff}" = no ] && [ -f "$dst" ] ; then
         rm "$dst" || fatal "Could not remove destination file $dst"
     fi
 
-    case $strategy in
+    case "${strategy}" in
         copy)
             cp "$src" "$dst"
-            message 1 "cp $src $dst"
             ;;
 
         symb)
             ln -s "$src" "$dst"
-            message 1 "ln -s $src $dst" # symbolic link"
             ;;
 
         hard)
             ln "$src" "$dst"
-            message 1 "ln $src $dst  # hard link"
             ;;
 
         diff)
-            echo
-            echo "=========== $src $dst ============"
+            message 0
+            message 0 "=========== $src $dst ============"
             diff "$src" "$dst"
-            echo "-----------------------"
-            echo
+            message 0 "-----------------------"
+            message 0
             ;;
 
         *)
@@ -573,7 +588,7 @@ do_update() {
     esac
 }
 
-success=yes
+
 
 # Determine what files need to be updated
 # NOTE: All of these arrays hold the repo path as the reference
@@ -586,16 +601,16 @@ for repo_file in "${repo_files[@]}"; do
         ls ./
         fatal "Repo file: \"$repo_file\" does not exist CWD: $(pwd)"
     fi
-    stats=( $(file_status "${repo_file}") )
+    read -r -a stats < <(file_status "${repo_file}")
     message 4 "File: ${stats[0]}  Needs update: ${stats[1]}  File status: ${stats[2]}"
     case ${stats[1]} in
         update_real)
             real_updates+=("${repo_file}")
-            message 3 Adding ${repo_file} to real file update list
+            message 3 "Adding ${repo_file} to real file update list"
             ;;
         update_repo)
             repo_updates+=("${repo_file}")
-            message 2 Adding ${repo_file} to REPO update list
+            message 2 "Adding ${repo_file} to REPO update list"
             ;;
         *)
             clean_files+=("${repo_file}")
@@ -607,9 +622,22 @@ done
 # set -x                                      ############### DEBUG
 # trap read debug                             ############### DEBUG
 
-if [ status = yes ]; then
-    verbose = 1000
+if [ "$status" = "yes" ]; then
+    # An hacky way to force output of file status
+    verbose=1000
 fi
+
+
+# Convert repo_files to full path
+# NB Remember that repo_files are relative to ${script_dir} 
+repo_files=( "${repo_files[@]/#/${HOME}/}" )
+
+
+#### NB Almost all destructive operations only occur below this line ################
+# One exception is above in the command line argument parsing where the 
+#      rm -f "$out_script"
+# To search for destructive commands use this...
+#               /[^#]*\(\<rm\>\|\<mv\>\|do_update\)
 
 ## real --> repo
 # Update repo files to match real files that are more up to date
@@ -619,13 +647,15 @@ fi
 message 4 "Files being updated (real-->repo):"
 for repo_file in "${repo_updates[@]}"; do
     real_file="$(real_from_repo "${repo_file}")"
-    rm "${repo_file}"
+    rm "${script_dir}/${repo_file}"
     cp "${real_file}" "${repo_file}"
     message 3 "    ${real_file}  -->  ${repo_file}"
     if [ $strategy != copy ]; then
+        # NB repo_file is expected to be relative to ${script_dir}
         real_updates+=("${repo_file}")
     fi
 done
+
 
 ## repo --> real
 # Update real files from repo
@@ -653,6 +683,16 @@ for repo_file in "${clean_files[@]}" ; do
     real_file="$(real_from_repo "${repo_file}")"
     message 2 "    ${real_file} is clean"
 done
+
+if [ "${repo_modified}" = "yes" ]; then
+    message 1 "dotfiles repository has been modified"
+    if (( verbose == 1 )) ; then
+        cd -P "${script_dir}" || fatal "Could not change directory to ${script_dir}"
+        git status -s
+    elif (( verbose > 1 )); then
+        git status
+    fi
+fi
 
 exit 0
 
