@@ -16,7 +16,8 @@ if [ -x /usr/bin/dircolors ]; then
 fi
 
 # some more ls aliases
-alias ll='ls -alF'
+alias ll='ls -lF'
+alias lla='ls -alF'
 alias la='ls -AF'
 alias l='ls -CF'
 alias py3='python3'
