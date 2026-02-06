@@ -1,5 +1,6 @@
+
 return {
-    cmd = { 'python-lsp-server' },
+    cmd = { 'jedi-language-server' },
     filetypes = { 'python' },
     root_markers = {
         '.venv',

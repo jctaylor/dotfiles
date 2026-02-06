@@ -16,3 +16,4 @@ capabilities = vim.tbl_deep_extend('force', capabilities, {
 -- Lua language server
 vim.lsp.enable("lua_ls")
 vim.lsp.enable("pylsp")
+--vim.lsp.enable('jedi_language_server')

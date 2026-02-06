@@ -15,7 +15,12 @@ return {
                 null_ls.builtins.completion.spell,
                 null_ls.builtins.formatting.black,  -- @TODO change this to blackd (single server for nvim instances)
                 null_ls.builtins.code_actions.refactoring, -- requires visually selecting the code you want to refactor and calling :'<,'>lua vim.lsp.buf.code_action()
-                null_ls.builtins.diagnostics.mypy,
+                null_ls.builtins.diagnostics.mypy.with({  -- mypy needs to be told where the python executable is to find imports
+                    extra_args = function()
+                        local venv_path = os.getenv("VIRTUAL_ENV") or "/usr"
+                        return { "--python-executable", venv_path .. "/bin/python" }
+                    end,
+                }),
                 -- Consider adding isort/isortd, mypy
             })
         end,

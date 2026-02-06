@@ -132,6 +132,7 @@ PROMPT_COMMAND='prompt_cmd'
 set -o vi
 
 
+PATH="${PATH}:/home/jason/.cargo/bin"
 PATH="/home/jason/perl5/bin${PATH:+:${PATH}}"; export PATH;
 PERL5LIB="/home/jason/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
 PERL_LOCAL_LIB_ROOT="/home/jason/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;

@@ -177,4 +177,14 @@ Picker jump to marks (harpoon-ish?)
 
 Get rid of dependency on Mason. Install LSPs, formatters, and linters manually.
 
+### pip vs pipx
 
+https://betterstack.com/community/guides/scaling-python/pip-vs-pipx/
+
+
+### Neovim node.js client
+
+See [node-client doc](https://neovim.io/node-client/)
+```
+npm install -g neovim
+```
