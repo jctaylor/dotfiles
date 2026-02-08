@@ -11,7 +11,7 @@ return {
     input = { enabled = true },
     notifier = {
       enabled = true,
-      timeout = 3000,
+      timeout = 10000,
     },
     picker = { enabled = true },
     quickfile = { enabled = true },
