@@ -1,108 +1,97 @@
 #!/bin/bash
 
-# TODO:
-#  [ ] Consolidate --script and --dry-run. Over time they became almost the same thing
-
-############ DEBUG #######################
-############ DEBUG #######################
-set -u
-############ DEBUG #######################
-############ DEBUG #######################
-
 # Set some normalized paths
 script_name=$( realpath "$0" )
-script_dir=$( dirname "$script_name" )
-script_name=$( basename "$script_name" )
-dotfile_path=$( realpath "${script_dir}"/.. )  # Full path used with the --add option
-backup_dir="${script_dir}/backup"
+script_dir="$( dirname "$script_name" )"          # e.g. /home/jason/dotfiles
+script_name="$( basename "$script_name" )"        # e.g. dotfiles.sh
+src_path="$( realpath "$script_dir"/home )"       # e.g. /home/jason/dotfiles/home
+time_stamp="$(date +%Y-%m-%d_%H.%M.%S)"
+backup_dir="${script_dir}/BACKUP/$time_stamp"
+state_dir="${script_dir}/STATE"
+managed_files_name="MANAGED_FILES.txt"
 
-out_script="${script_dir}/_update.sh"
-
-## USAGE
+# This script will generate this next one which is a flat verbose script that 
+# can be used to verify the actions are correct and tweaked if needed. 
+update_script="${script_dir}/do_update.sh"
 
 usage="
 
-Usage: $script_name [--help|-h] [OPTIONS] [FILE|DIR ...]
+Usage: $script_name [--help|-h] COMMAND [OPTIONS] [FILE|DIR ...]
 
 This script synchronizes \"dotfiles\" that are found in ${script_dir}/home. It
-can synchronize both ways. By default, if a dotfile in the home directory is
-newer than the corresponding one in the dotfiles/home directory, it is assumed
-that that file is correct. It will copy this file to the dotfile repo.
+can synchronize both ways.
 
-Different \"strategies\" can be used. Home directory files can be, symbolic
-links, hard links or copies of those in the dotfile repo.
+Different \"strategies\" can be used. Strategies are one of; symbolic links,
+hard links or independent copies of the dotfile repo files.
 
-If timestamps cannot be trusted, --repo can be specified to force this script
-to assume the files in the repo are correct. Likewise, if --home is specified,
-it will updated repo files to match those in the home directory.
+This version of the script uses a state file (one for each git branch in the
+dotfile repo) to determine which files need to be modified.
 
-The files to consider for \"syncing\" i.e. \"updating\" are either specified on
-the command line. Each argument is a base name of a file or directory that
-matches a:
-    1. file or directory in \$HOME,
-    2. file or directory \$HOME/.config,
-    3. \$HOME/.local/bin, or
-    4. a file in \$HOME/.local/bin
+Not all files and directories are considered equal. 
+There are config files and config directories.
+config files are independent of each other.
+config directories are treated as a unit. e.g. \$HOME/.config/nvim. 
+If we make changes to nvim that include removing some files, the update script
+should know to remove those files.
+When updating a config directory, it will be made to reflect the dotfile repo
+for that directory.
 
-Directories in \$HOME and \$HOME/.config are considered as a complete unit.
-This means, if files within the dotfile repo version of these directories are
-deleted, they should also be deleted in the \$HOME directory version.
+For several reasons, we would not want the same behaviour for individual dotfile
+in the home directory. If a gitbranch does not include .bash_alias, we probably
+don't want to delete on that is already there.
 
-\$HOME/.local/bin is not a unit. Each file in \$HOME/.local/bin is it own
-entity. Many (most?) files in \$HOME/.local/bin are there because of some
-package that is installed outside of the dotfiles repo.
+This script will try to determine if dotfile that have changed in HOME (but not
+dotfiles) since the last update, should be sync to the dotfiles directory.
 
-It could have been more general than this, but in practise we usually want to
-treat things like \$HOME/.config/nvim as a single unit.
+By default, this script does not modify any of the dotfiles. Instead it
+generates a flat script $( basname "${update_script}" ) that can be run to make the updates.
+
+Files that are in \$HOME (but not a sub-directory of \$HOME are 
+It tries to be smart. If files are modified in the home directory after an
+update, it will ask if those changes should be pulled into the git repo.
+
+This is not fool proof. Hence the generate-an-update-script strategy.
 
 ARGUMENTS:
 
-    FILE | DIR ...  These arguments are either a file in ~/, or a directory in
-                    ~/.local
-                    or DIR in ~/.config/DIR
+    FILE | DIR ...  Limit the update to these files or directories. If not
+                    specified, all files in the repo are considered.
 
 OPTIONS:
 
-    --update        Make updates now. Without this, a script will be generated
-                    that can be run to make the changes.
-
-    --status        Just show status
-
-    --add PATH ...  All files listed after this are to be added to git control.
-                    If the path is a file, it is added. If the PATH is a
-                    directory all new files within that path are added.
-                    If any of the files are already part of the dotfiles repo,
-                    they are simply ignored (i.e. not an error).
-
     --help          Show this help end exit.
 
-    --verbose       Verbose output. Use multiple times for increased verbosity.
+    --update        Make updates now. The default action without this is to make
+                    a script that can be run to make the necessary changes.
 
-    --dry-run       Dry run, show what would be done.
+    --add PATH ...  Use this to add new files or directories to the dotfiles repo.
+                    PATH is either a file or directory in the HOME directory.
 
-    --diff          Show the differences between files.
+    --verbose       Increase the verbosity level of the output with each time
+                    it is seen on the command line (i.e. it can be used multiple
+                    times).
 
-    --force         Force chosen strategy. Say a file is up to date as a hard
-                    link with the repo, if --symbolic is chosen, remove the hard
-                    link and replace it with a symbolic link
+    --diff          Show the differences instead of creating an update.
 
-    --interactive   Confirm before making changes to a file.
+    --force         Force chosen strategy. If this flag is specified, all files
+                    that are using a strategy different from the current
+                    strategy will be modified to match even if the files are
+                    otherwise consistent.
 
-    --backup-off    Do not backup modified (or deleted) real files.
+    --interactive   Script will prompt for confirmation before each change.
 
-Trust options:
+    --no-backup     Don't make backup files. Normally, files in the HOME
+                    directory modified (or deleted) real files.
 
-    --repo          Trust repo version. Ignore timestamps.
-
-    --home          Trust home version. Ignore timestamps.
-
-Strategy options:
+STRATEGY OPTIONS:
 
     --copy          Make copies of the files
 
     --hard          Make hard links.
+                    NB: This script is not smart enough to notice when the repo
+                        is on a different file system).
 
-    --symbolic      Make symbolic links.
+    --symbolic      Make symbolic links (default).
 
 
 EXAMPLES:
@@ -122,7 +111,7 @@ EXAMPLES:
     # up-to-date, will be replaced with hard links.
     $script_name --hard --force
 
-    # Don't do anything. Just show what would be done
+    # Dont do anything. Just show what would be done
     $script_name --dry-run
 
     # Don't change the any files, just show the differences
@@ -130,9 +119,6 @@ EXAMPLES:
 
     # Update config files for nvim and kitty and nothing else
     $script_name nvim kitty
-
-    # This is an error, you can not specify a subdirectory of a directory in .config
-    $script_name nvim/lua
 
 "
 
@@ -147,16 +133,15 @@ fatal() {
 if [ "${BASH_VERSINFO}" -lt 4 ]; then
     fatal "This $script_name script needs bash version 4.0 or greater"
     # TODO re-write to use 3.27.0+
+    # need to get rid of mapfile and maybe some array stuff
 fi
 
 
 # Main script parameters
 diff="no"        # This is not a "diff"
-dryrun="no"      # This is not a "dry run"
 force="no"       # Don't "force" strategy on consistent files
-script="yes"      # Changes are live (not saved as a script).
+update="no"      # Create but don't run update script.
 strategy="symb"  # hard, copy
-status="no"      # We are not just getting the status
 trust="time"     # repo, home  Trust time stamps, repo version, or home version
 verbose=0        # Verbosity level
 
@@ -164,42 +149,66 @@ verbose=0        # Verbosity level
 # Verbosity sensitive level output
 message() {
     # message [VERBOSE_LEVEL] MESSAGE
-    # A high VERBOSE_LEVEL means we need to be have a high verbosity for it to be displayed
-    # message 0 message This message will always be displayed
-    # message 4 uninteresting message will only be displayed if there is a high verbosity
-    if [[ "$1" =~ ^[0-9]$ ]]; then
-        level="$1"
-        shift
-    else
-        level=1  # default level
-    fi
-
+    level="$1"
+    # A high VERBOSE_LEVEL means we need to be have a high $verbose value it to be displayed
     if [ "$level" -le "$verbose" ]; then
-        echo "$*" >&2  # Must be stderr because it is used in functions where the message is captured
-        if [ $script = yes ]; then
-            echo "# $*" >> "$out_script"
-        fi
+        echo "$*" >&2
     fi
 }
 
-# Working directory must be .../<dotfiles>/home
+### WORKING directory from here on out is ...
+
 cd -P "${script_dir}"/home || \
     fatal  "This script assumes it is run from ${script_dir} and expects ${script_dir}/home to exist"
 
-
-# Build a list of individual dotfiles to update
-config_files=() # (".bashrc" ".profile" ... )
-
-# Build a list of config dirs that are treated as whole unit configs.
-# This is needed to figure out which files to delete
-config_dirs=()  # ( ".config/nvim" ".config/kitty" ... )
+## Update managed files list file
+## Look for new directories. If any are found, ask if they should be added as directories
+## or as files within those directories
+## can use some logic to ignore parent directories that already contain managed files or directories
+## since ./home/.config is a parent of nvim, kitty, etc. it is ignored (or just marked as a parent)
 
 
+
+
+
+# 1. Add any new subdirectories as managed subdirectories
+# 2. Add any new files as managed files.
+# To remove files 
+
+## Load managed_files lists
+managed_files=()
+managed_dirs=()
+delete_paths=()  # file or directories seen in MANAGED_FILES.txt but does not appear in repo
+parent_dirs=()   # parent dirs can not be considered as managed dirs
+while read -r line || [ -n "$line" ]; do
+   echo "|${line}|"
+   if [ -z "${line}" ] || [ "${line:0:1}" = "#" ]; then
+       :
+   else
+       if [ -f "./home/$line" ] ; then
+           managed_files+=( "${line}" )
+
+       elif [ -d "./home/$line" ] ; then
+           managed_dirs+=( "${line}" )
+       else
+           # Listed as managed but not seen in the repo
+           delete_paths+=( "$line" )
+       fi
+       parent_dir+=( "$(basename "${line}" )" )
+   fi
+done < "${managed_files_name}"
+
+## TODO Test managed_files to ensure none are listed in managed_dirs
+
+## Parse command line
+add_files=() # Files in HOME that should be included in the repo
+requested_files=()
+requested_dirs=()
 # Parse command line arguments
 while [ "$#" -gt 0 ]; do
     case "$1" in
 
-        *-a*)    # Add files to dotfile repo. Used to add files that exist in HOME that should be added to the repo
+        *-a*)    # Add files or directories to dotfiles repo
             shift
             if [ -z "$1" ]; then
                 fatal "Must specify a valid file or directory to add"
@@ -207,19 +216,20 @@ while [ "$#" -gt 0 ]; do
 
             path=$( realpath "${HOME}/$1" )
 
-            if [[ "${path}" == *"${dotfile_path}"* ]]; then
-                fatal "Cannot add dotfiles files to dotfiles \"${path}\" is within \"${dotfile_path}\""
+            # Make sure we're not trying to add a file from the dotfiles repo
+            if [[ "${path}" == *"${script_dir}"* ]]; then
+                fatal "Cannot add dotfiles files to dotfiles \"${path}\" is within \"${script_dir}\""
             elif [ -f "${path}" ]; then
-                files_to_add+=( "${path}" )
+                add_files+=( "${path}" )
             elif [ -d "${path}" ]; then
                 # Use mapfile to append to the existing array (-O offset index)
-                mapfile -t -O "${#files_to_add[@]}" files_to_add < <( find "${path}" -type f )
+                mapfile -t -O "${#add_files[@]}" add_files < <( find "${path}" -type f )
             else
                 fatal "Failed to add \"${path}\". It is not a regular file or directory."
             fi
             ;;
 
-        *-b*)    # Turn off backups
+        *-n*)    # No backups (why?)
             backup_dir=""
             message 4 "No backups will be made"
             ;;
@@ -229,17 +239,9 @@ while [ "$#" -gt 0 ]; do
             message 3 "Setting strategy to copy links"
             ;;
 
-        *-dr*)
-            dryrun="yes"
-            ;;
-
-        *-di*)    # Show diffs but don't otherwise modify anything
+        *-d*)    # Show diffs but don't otherwise modify anything
             strategy="diff"
             message 2 "Will show diffs. No files will be updated."
-            ;;
-
-        *-d*)
-            fatal "Ambiguous argument \"$1\" could be --dry-run or --diff"
             ;;
 
         *-f*)     # Force all files to conform to the chosen strategy
@@ -251,13 +253,8 @@ while [ "$#" -gt 0 ]; do
             message 3 "Setting strategy to hard links"
             ;;
 
-        -h | --he*) # Display help and exit
+        -h|--he*) # Display help and exit
             echo "$usage"; exit 0
-            ;;
-
-        *-ho*)   # Trust home files as authoritative
-            trust="home"
-            message 1 "Ignoring time stamps. Trusting home directory (real) version"
             ;;
 
         *-h*)    # Ambiguous
@@ -278,11 +275,6 @@ while [ "$#" -gt 0 ]; do
             fatal "Ambiguous argument \"$1\" could be, --symbolic, --static, or --script"
             ;;
 
-        *-r*)    # Trust the repo files as authoritative
-            trust="repo"
-            message 1 "Ignoring time stamps. Trusting repo version"
-            ;;
-
         *-u*)    # Update now (i.e. don't bother making a script
             script="no"
             message 2 "Changes will be made now (no script)"
@@ -296,19 +288,19 @@ while [ "$#" -gt 0 ]; do
         *)      # Add config file or directory to a list
             if [ -f "./$1" ]; then
                 # A config file in $HOME (e.g. .bashrc)
-                config_files+="$1"
+                requested_files+="$1"
             elif [ "$1" = bin ]; then
                 # Short hand to add all files in ~/.local/bin
-                config_files+=( "$(find ./local/bin -type f)" )
+                requested_files+=( "$(find ./local/bin -type f)" )
             elif [ -f ".local/bin/$1" ]; then
                 # A specific file in ~/.local/bin
-                config_files+=( ".local/bin/$1" )
+                requested_files+=( ".local/bin/$1" )
             elif [ -d ".config/$1" ] ; then
                 # A "config" dir in $HOME/.config (managed as a single unit)
-                config_dirs+=(".config/$1")
+                requested_dirs+=(".config/$1")
             elif [ -d "$1" ]; then
                 # This is a "config" dir in $HOME (managed as a single unit)
-                config_dirs+=( "$1" )
+                requested_dirs+=( "$1" )
             else
                 fatal "Unknown option $1"
             fi
@@ -316,6 +308,150 @@ while [ "$#" -gt 0 ]; do
     esac
     shift
 done
+
+mkdir -p "../STATE"
+
+# Make sure this is run on a clean git branch
+
+git_branch="$( git rev-parse --abbrev-ref HEAD || fatal "Failed to get git branch name")"
+state_file="${state_dir}/$git_branch"
+
+if git status --porcelain | grep "^.M" ; then
+    message 2 "On branch $git_branch (clean)"
+else
+    # Go interactive
+    message 0 "Git branch has un-committed files."
+    git status >&2
+    read -p "Commit modifications and proceed [y/N]? " yn
+    case $yn in
+        y*|Y*) #
+            git add -u
+            git commit
+            git status
+            ;;
+        *)
+            message 0 "Clean up git repo and try again"
+            exit 0
+    esac
+fi
+
+
+_set_file_record() {
+    # Used by _write_script to set file_record[@] and also echo it to the update script
+    file="$1"
+    if [ -f "$file" ]; then
+        file_record=( "[$(stat -c %z "$file" )]" $(md5sum "$file" | sed 's/ \+/ "/' | sed 's/$/"/') $2 )
+        # also add a command to add the record to the state file
+        echo "    echo \"$file_record\" > \$state_file"
+    else 
+        file_record=() # If the file does not exist the record is null
+    fi
+}
+
+_write_script() {
+    # Input global arrays:
+    #       delete_files[@] -- array of files in the home directory that should
+    #                          be removed in the new config
+    #
+    #       update_files[@] -- array of repo files that are used to update HOME
+    #                          directory files
+    #
+    #       pull_files[@] ---- array of file in the HOME directory that are
+    #                          used to update dotfiles repo
+    #
+    # Other input:
+    #       backup_dir ---- Directory to save files that will get overwritten,
+    #                       or empty string to indicate no backup. It is passed
+    #                       the update script which uses it.
+    #       strategy ------ copy, symb, or hard
+    #
+    # This is a private method only called by "write_script"
+    # It will generate the flattened update script that can be inspected before running.
+    # It is verbose by design.
+    #
+    # The output script relies on some convenience functions found in update_utils.sh
+    #
+
+    echo "# Created by $script_name $time_stamp"
+    echo "# Run this script to update HOME files"
+    echo "cd \"$src_dir\""
+    echo "backup_dir=${backup_dir}"
+    echo "strategy=$strategy"
+    echo "git_branch=$git_branch"
+    cat update_utils.sh  # include the utility functions directly in the update script
+    echo "verify_git_branch"
+    echo "verify_recent $(data +%Y%m%d%H%M) 10"  # make sure the script is no more than 10 minutes old
+    echo
+
+
+    echo "###### update actions follow ######"
+    echo "#    DELETE"
+    echo "# Delete files that should no longer be there:"
+    for file in "$delete_files[@]"; do
+        hfile="$(realpath "$HOME/$rfile")"
+        _set_file_record "$hfile" REMOVE
+        echo "  delete \"$hfile\" ${file_record[1]}"
+    done
+
+    echo
+    echo '#    UPDATE'
+    echo '#    dotfiles --> HOME'
+    echo "# syntax: "
+    echo "#         update REPO_PATH HOME_PATH REPO_HASH BACKUP_DIR"
+    echo "# BACKUP_DIR may be an empty string"
+    for rfile in "${update_files[@]}"; do
+        hfile="$(realpath "$HOME/$rfile")"
+        dfile="$(realpath "./$rfile")"
+        _set_file_record "$dfile" UPDATE # This echos the record and set file_record
+        echo "    update \"$dfile\" \"$hfile\" ${file_record[1]}"
+    done
+
+    echo
+    echo '#    UPDATE'
+    echo '#    HOME --> dotfiles'
+    echo "# syntax: "
+    echo "#         update  HOME_PATH REPO_PATH HOME_HASH BACKUP_DIR"
+    echo "# BACKUP_DIR may be an empty string"
+    for file in "$pull_files"; do
+        hfile="$(realpath "$HOME/$rfile")"
+        dfile="$(realpath "./$rfile")"
+        _set_file_record "$hfile" UPDATE
+        echo "    update \"$hfile\" \"$dfile\" ${file_record[1]}"
+    done
+
+    echo "   update_branch # Update git branch if needed"
+}
+
+write_script() {
+    _write_script > "$out_script"
+    message 1 "$out_script created"
+}
+
+if [ ! -f "${state_file}" ]; then
+    # First time using these dotfiles with this git branch
+    # This is the simplest case
+    mkdir ../STATE || fatal "Failed to make STATE directory"
+    mapfile -t update_list < <(find ../home -type f) # all files need to be updated
+    delete_list=() # No files to delete ERROR
+    pull_files=()  # Not pulling any HOME dir files into repo
+    write_script
+    message 0 "Run $(realpath $update_script) to complete the updates."
+    message 0 "** You should verify the script first **"
+    exit 0
+fi
+
+
+
+
+
+
+
+# Build a list of individual dotfiles to update
+config_files=() # (".bashrc" ".profile" ... )
+
+# Build a list of config dirs that are treated as whole unit configs.
+# This is needed to figure out which files to delete
+config_dirs=()  # ( ".config/nvim" ".config/kitty" ... )
 
 #### Use config_files and config_dirs lists to create update_files and delete_files lists ...
 

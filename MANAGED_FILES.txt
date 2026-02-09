@@ -1,0 +1,21 @@
+# Files and directories that are explicitly managed by the dotfiles
+# Order does not matter. 
+# A managed file or directory that does not appear in the git branch 
+# That is being sync will be deleted.
+
+  ssd
+  a a a 
+.bashrc
+.bash_alias
+.bash_logout
+.profile
+
+# Directories
+.config/git
+.config/nvim
+.config/kitty
+.config/tmux
+
+./config/does-not-exist
+  # asdf aa  ldjf aldfj
+# Eventually some individual scripts in .local/bin/

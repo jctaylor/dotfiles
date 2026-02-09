@@ -28,7 +28,7 @@ return {
 
     keymap = {
         preset = 'default',
-        ['<TAB>'] =  { "accept", "select_and_accept" },
+        ['<TAB>'] =  { "accept", "select_and_accept", "fallback" },
     },
 
     appearance = {
