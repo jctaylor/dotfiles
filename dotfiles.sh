@@ -365,10 +365,13 @@ fi
 # or deleted, depending on time stamps (and trust variable)
 #
 # FIXME This is not smart enough to delete empty directories
+# FIXME A better way to ignore tmp and cache directories
+#
+
 extra_dir_files=()
 mapfile -t extra_dir_files < \
     <( comm -2 -3 2>/dev/null \
-        <(find $( printf "${HOME}/%s " "${update_dirs[@]}" ) -type f | sort ) \
+        <(find $( printf "${HOME}/%s " "${update_dirs[@]}" ) -type f | grep -v tpm/ | grep -v .mypy_cache | sort ) \
         <(find $( printf "%s " "${update_dirs[@]}" ) -type f | sed "s#^#${HOME}/#" | sort  ) \
     )
 
@@ -508,12 +511,14 @@ generate_update_script() {
     echo "#"
     echo "#    CLEAN UP"
     echo "#"
-    echo "find ${HOME}/.config -type d -delete  # delete empty directories"
+    echo "find ${HOME}/.config -type d -empty -delete  # delete empty directories"
     echo "update_branch                             # Update git branch if needed"
     echo
 
 }
 
+rm -rf "${update_script}"
 generate_update_script >  "${update_script}" && chmod +x "${update_script}"
 
 exit $?
+

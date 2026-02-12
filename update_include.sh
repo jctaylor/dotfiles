@@ -1,17 +1,18 @@
 ################################################################################
 # Include for do-update.sh
-        case $strategy in
-            copy) udpate_cmd="copy";;
-            hard) udpate_cmd="ln -L";;
-            symb) update_cmd="ln -s";;
-            *) fatal "Invalid strategy \"$strategy\""
-        esac
-
+        set -u
         fatal() {
             # Called when there is an unrecoverable error
             echo "FATAL: $*" >&2
             exit 1
         }
+
+        case $strategy in
+            copy) update_cmd="copy";;
+            hard) update_cmd="ln -L";;
+            symb) update_cmd="ln -s";;
+            *) fatal "Invalid strategy \"$strategy\""
+        esac
 
         if [ -n "${backup_dir}" ] && [ ! -d "${backup_dir}" ]; then
             mkdir -p "${backup_dir}" || fatal "Could not create backup dir"
@@ -19,7 +20,7 @@
 
         backup() {
             if [ -n "${backup_dir}" ]; then
-                cp "$1" "${backup_dir}"
+                cp -n "$1" "${backup_dir}"
             fi
         }
 
@@ -32,7 +33,7 @@
                 if [ $curr_hash = $orig_hash ]; then
                     # It's okay to delete
                     backup "$file"
-                    rm -f "$delete_file"
+                    rm -f "$file"
                 else
                     echo >&2 "Not deleting \"$file\". Hash has changed"
                     return 1 
@@ -51,13 +52,15 @@
                 echo >&2 "Update failed. \"$file\" does not exist"
             fi
 
+
             if [ -n "$orig_hash" ]; then
                 curr_hash=($(md5sum $src) )
                 if [ $curr_hash = $orig_hash ]; then
                     # It's okay to update
                     backup "$dst"
-                    $strategy "$src" "$dst" || \
-                        echo >&2 "failed to update \"$src\" to \"$dst\""
+                    delete "$dst" || echo >&2 "Failed to update \"$src\" to \"$dst\""; return 1
+                    $update_cmd "$src" "$dst" || \
+                        echo >&2 "Update command failed: $update_cmd \"$src\" to \"$dst\"" ; return 1
                 else
                     echo >&2 "Not updating $dst. Source file hash has changed"
                     return 1 
@@ -68,14 +71,34 @@
 
         verify_git_branch() {
             orig_branch="$1"
-            git switch "$orig_branch" || fatal "Could not switch to git branch $orig_branch"
+            if [ ! "$orig_branch" = "$(git rev-parse --abbrev-ref HEAD)" ]; then
+                git switch "$orig_branch" || fatal "Could not switch to git branch $orig_branch"
+            fi
 
             # Abort if the git branch has changed since the script was generated.
-            git status --porcelain | grep "^.M" || \
-                fatal "Git branch has been modified since script was generated"
+            if git status --porcelain | grep "^.M" ; then
+                echo "WARNING: git branch has modified content"
+                git status
+                echo "    How do you want to proceed ?"
+                select action in abort commit ignore
+                do
+                    case $action in
+                        abort)
+                            fatal "Git branch has been modified since script was generated"
+                            ;;
+                        commit) 
+                            echo "Starting sub-shell. Clean up repo and exit the shell"
+                            bash -i
+                            ;;
+                        ignore)
+                            echo "Ignoring repo. If any files have changed this script may fail"
+                            ;;
+                    esac
+                done
+            fi
         }
 
-        verfiy_git_branch
+        verify_git_branch "$git_branch"
 
         # Called at the end of the generated script
         update_branch() {
