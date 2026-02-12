@@ -1,20 +1,19 @@
--- Global lsp setup
--- see: https://gpanders.com/blog/whats-new-in-neovim-0-11/
 
-vim.lsp.enable( {
-    'clangd',
-    'pylsp',
-    'lua_ls',
-    'bashls',
-} )
+-- Merge blink.cmp capabilities with builtin capabilities
+local capabilities = vim.lsp.protocol.make_client_capabilities()
 
+capabilities = vim.tbl_deep_extend('force', capabilities, require('blink-cmp').get_lsp_capabilities({}, false))
 
-vim.api.nvim_create_autocmd('LspAttach', {
-  callback = function(ev)
-    local client = vim.lsp.get_client_by_id(ev.data.client_id)
-    if client:supports_method('textDocument/completion') then
-      vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
-    end
-  end,
+capabilities = vim.tbl_deep_extend('force', capabilities, {
+  textDocument = {
+    foldingRange = {
+      dynamicRegistration = false,
+      lineFoldingOnly = true
+    }
+  }
 })
 
+-- Lua language server
+vim.lsp.enable("lua_ls")
+vim.lsp.enable("pylsp")
+--vim.lsp.enable('jedi_language_server')

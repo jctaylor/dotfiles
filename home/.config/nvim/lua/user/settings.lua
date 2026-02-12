@@ -45,7 +45,38 @@ vim.api.nvim_create_user_command('W', 'w', {})
 vim.api.nvim_create_user_command('Qa', 'qa', {})
 vim.api.nvim_create_user_command('Q', 'q', {})
 
+vim.diagnostic.config( {
+        signs = {
+            text = {
+                [vim.diagnostic.severity.ERROR] = '',
+                [vim.diagnostic.severity.WARN] = '',
+                [vim.diagnostic.severity.INFO] = '',
+            },
+            linehl = {
+                [vim.diagnostic.severity.ERROR] = 'ErrorMsg',
+            },
+            numhl = {
+                [vim.diagnostic.severity.WARN] = 'WarningMsg',
+            },
+        },
+    underline = true,
+    virtual_lines = false,
+    virtual_text = {
+        current_line = true,
+    },
 
+--[[
+float = {
+        border = "rounded",
+        focusable = true,
+        source = "always",
+        header = false,
+        current_line = true,
+    },
+]]--
+})
+
+vim.o.winborder = 'rounded'  -- Default for all floats
 
 vim.opt.listchars = "tab:——▷,trail:⎵,extends:⟩,precedes:⟨,space:"
     --  

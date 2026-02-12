@@ -1,2 +1,3 @@
-BRANCH*
-backup*/
+BACKUP/
+do-update.sh
+TIMESTAMP
