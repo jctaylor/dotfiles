@@ -1,24 +1,27 @@
 ################################################################################
 # Include for do-update.sh
-        set -u
+        set -x
         fatal() {
             # Called when there is an unrecoverable error
-            echo "FATAL: $*" >&2
+            echo "FATAL: $*"
             exit 1
         }
 
         update_cmd() {
+	    echo "UPDATE COMMAND"
             case $strategy in
                 copy)
-                    cp "$*"
+                    cp "$@"
                     ;;
                 hard)
-                    ln "$*"
+                    ln "$@"
                     ;;
                 symb)
-                    ln -s "$*"
+                    ln -s "$@"
                     ;;
-                *) fatal "Invalid strategy \"$strategy\""
+                *)
+		    fatal "Invalid strategy \"$strategy\""
+		    ;;
             esac
         return 0
         }
@@ -70,9 +73,9 @@
             fi
 
             backup "$dst"
-            delete "$dst" || echo >&2 "Failed to update \"$src\" to \"$dst\""; return 1
-            eval $update_cmd "$src" "$dst" || \
-                echo >&2 "Update command failed: $update_cmd \"$src\" to \"$dst\"" ; return 1
+            delete "$dst" || echo >&2 "Failed to update \"$src\" to \"$dst\""
+            update_cmd "$src" "$dst" || \
+                echo >&2 "Update command failed \"$src\" to \"$dst\""
 
             return 0
         }
