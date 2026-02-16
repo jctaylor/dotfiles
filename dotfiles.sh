@@ -480,7 +480,7 @@ generate_update_script() {
     echo "# Created by $script_name $time_stamp"
     echo "# Run this script to update HOME files"
     echo "#"
-    echo "    cd \"$script_dir\""
+    echo "    cd \"$script_dir\" || exit 1"
     echo "    backup_dir=\"${backup_dir}\""
     echo "    strategy=$strategy"
     echo "    git_branch=$git_branch"

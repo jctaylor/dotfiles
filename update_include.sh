@@ -9,7 +9,7 @@
 
         update_cmd() {
 	    echo "UPDATE COMMAND"
-            case $strategy in
+            case "$strategy" in
                 copy)
                     cp "$@"
                     ;;
@@ -39,12 +39,12 @@
         delete() {
             file="$1"      # file to delete
 
-            if [ "$#" -gt 1  ]; then 
+            if [ "$#" -gt 1  ]; then
                 # If there was a hash given, make sure it has not changed
-                curr_hash=($(md5sum $file) )
-                if [ ! $curr_hash = $orig_hash ]; then
+                curr_hash=( "$(md5sum $file)" )
+                if [ ! "$curr_hash" = "$orig_hash" ]; then
                     echo >&2 "Not deleting \"$file\". Hash has changed"
-                    return 1 
+                    return 1
                 fi
             fi
 
@@ -65,8 +65,8 @@
 
             if [ -n "$3" ]; then
                 # If there was a hash, makes sure it has not changed
-                curr_hash=($(md5sum $src) )
-                if [ ! $curr_hash = $3 ]; then
+                curr_hash=( "$(md5sum $src)" )
+                if [ ! "$curr_hash" = "$3" ]; then
                     echo >&2 "Not updating $dst. Source file hash has changed"
                     return 1
                 fi
@@ -97,7 +97,7 @@
                         abort)
                             fatal "Git branch has been modified since script was generated"
                             ;;
-                        commit) 
+                        commit)
                             echo "Starting sub-shell. Clean up repo and exit the shell"
                             bash -i
                             ;;
@@ -114,10 +114,10 @@
         # Called at the end of the generated script
         update_branch() {
             # Check the git branch to see if there have been any changes
-            # since this script started. 
+            # since this script started.
             if git status --porcelain | grep "^.M"; then
                 echo "Some files have been modified (pulled from HOME directory)"
-                git status >2
+                git status
                 read -p "Commit modifications before exiting [y/N]? " yn
                 case $yn in
                     y*|Y*) #
