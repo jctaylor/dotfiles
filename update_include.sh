@@ -7,65 +7,73 @@
             exit 1
         }
 
-        case $strategy in
-            copy) update_cmd="copy";;
-            hard) update_cmd="ln -L";;
-            symb) update_cmd="ln -s";;
-            *) fatal "Invalid strategy \"$strategy\""
-        esac
+        update_cmd() {
+            case $strategy in
+                copy)
+                    cp "$*"
+                    ;;
+                hard)
+                    ln "$*"
+                    ;;
+                symb)
+                    ln -s "$*"
+                    ;;
+                *) fatal "Invalid strategy \"$strategy\""
+            esac
+        return 0
+        }
 
         if [ -n "${backup_dir}" ] && [ ! -d "${backup_dir}" ]; then
             mkdir -p "${backup_dir}" || fatal "Could not create backup dir"
         fi
 
         backup() {
-            if [ -n "${backup_dir}" ]; then
-                cp -n "$1" "${backup_dir}"
+            if [ -n "${backup_dir}" ] && [ -f "$1" ]; then
+                cp --backup "$1" "${backup_dir}" || fatal "Could not backup $1 to $backup_dir"
             fi
         }
 
         delete() {
             file="$1"      # file to delete
-            orig_hash="$2" # hash of file when script was generated (if no given this is no-op)
 
-            if [ -f $file ] && [ -n "$orig_hash" ]; then
+            if [ "$#" -gt 1  ]; then 
+                # If there was a hash given, make sure it has not changed
                 curr_hash=($(md5sum $file) )
-                if [ $curr_hash = $orig_hash ]; then
-                    # It's okay to delete
-                    backup "$file"
-                    rm -f "$file"
-                else
+                if [ ! $curr_hash = $orig_hash ]; then
                     echo >&2 "Not deleting \"$file\". Hash has changed"
                     return 1 
                 fi
             fi
+
+            backup "$file"
+            rm -f "$file"
+
             return 0
         }
 
         update() {
             src="$1"
             dst="$2"
-            orig_hash="$3" # hash of src when script was generated (if no given this is no-op)
 
             # Unlike delete, it is an error if the src does not exist
             if [ ! -f "$src" ]; then
                 echo >&2 "Update failed. \"$file\" does not exist"
             fi
 
-
-            if [ -n "$orig_hash" ]; then
+            if [ -n "$3" ]; then
+                # If there was a hash, makes sure it has not changed
                 curr_hash=($(md5sum $src) )
-                if [ $curr_hash = $orig_hash ]; then
-                    # It's okay to update
-                    backup "$dst"
-                    delete "$dst" || echo >&2 "Failed to update \"$src\" to \"$dst\""; return 1
-                    $update_cmd "$src" "$dst" || \
-                        echo >&2 "Update command failed: $update_cmd \"$src\" to \"$dst\"" ; return 1
-                else
+                if [ ! $curr_hash = $3 ]; then
                     echo >&2 "Not updating $dst. Source file hash has changed"
-                    return 1 
+                    return 1
                 fi
             fi
+
+            backup "$dst"
+            delete "$dst" || echo >&2 "Failed to update \"$src\" to \"$dst\""; return 1
+            eval $update_cmd "$src" "$dst" || \
+                echo >&2 "Update command failed: $update_cmd \"$src\" to \"$dst\"" ; return 1
+
             return 0
         }
 
