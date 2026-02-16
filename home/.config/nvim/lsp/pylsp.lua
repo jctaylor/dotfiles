@@ -1,5 +1,5 @@
 return {
-    cmd = { 'python-lsp-server' },
+    cmd = { 'pylsp' },
     filetypes = { 'python' },
     root_markers = {
         '.venv',
