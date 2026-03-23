@@ -393,7 +393,7 @@ else
                 # Add this hfile to the repo. It was created after the last
                 # time this script was run.
                 add_files+=( "$hfile" )
-                message 2 "Adding extraneous $file to the repo (newer than time stamp}"
+                message 2 "Adding extraneous $hfile to the repo (newer than time stamp}"
             fi
         else
             # The file is older than than time stamp file
