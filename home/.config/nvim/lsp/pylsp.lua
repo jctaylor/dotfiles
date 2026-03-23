@@ -4,7 +4,7 @@ return {
     pycodestyle = {
         enable = true,
         maxLineLength = 120,
-        ignore = { "E741" },
+        ignore = { "E741", "E501" },
     },
     root_markers = {
         ".venv",
