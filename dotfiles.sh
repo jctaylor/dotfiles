@@ -176,7 +176,7 @@ fi
 diff="no"        # This is not a "diff"
 force="no"       # Don't "force" strategy on consistent files
 update="no"      # Don't automatically run the do-update script
-strategy="symb"  # hard, copy
+strategy="hard"  # hard, copy
 trust="neither"  # Prompt for inconsistencies
 verbose=0        # Verbosity level
 
@@ -346,11 +346,13 @@ validate_request_files() {
                 break
             fi
         done
-        if [ $allowed_file = false ] && [ $allowed_dir = flase ]; then
+        if [ $allowed_file = false ] && [ $allowed_dir = false ]; then
             fatal "Requested path $file is not a valid dotfile or dotfile dir"
         fi
     done
 }
+
+#FIXME Finish writing update_files list when file are specified on the command line
 
 # If there were no files or directories specified on the command line, all repo
 # files are to be updated.
@@ -413,29 +415,46 @@ mapfile -t -O "${#update_files[@]}" update_files < <(find $( printf "%s " "${upd
 ## Sort udpate files into to_home (normal action), and to_repo (added and newer files)
 to_repo=( "${add_files[@]}" )    # Full path $HOME/...
 to_home=()                       # Relative path
-if [ "$trust" = repo ]; then
-    to_home=( "${update_files[@]}" )  # All repo files (within selection are candidates for update)
-else
-    for rfile in "${update_files[@]}"; do
-        hfile="${HOME}/$rfile"
-        if [ ! -f "$hfile" ]; then
-            # Doesn't exist in HOME
-            to_home+=( "$rfile" )
-        elif cmp "$rfile" "$hfile" >/dev/null 2>&1; then
-            # Nothing to do. The files are the same
-            message 3 "The files ${hfile} and ${script_dir}/home/$rfile are the same"
-        else
-            # Choose direction based on modify time
-            if [ "$rfile" -nt "$hfile" ]; then
-            # The repo file is newer and different than the one in the HOME dir
-            # This is sort of the main purpose of this script
+for rfile in "${update_files[@]}"; do
+    hfile="${HOME}/$rfile"
+    if [ ! -f "$hfile" ]; then
+        # Doesn't exist in HOME
+        to_home+=( "$rfile" )
+    elif cmp "$rfile" "$hfile" >/dev/null 2>&1; then
+        # Files match 
+        if [ "$force" = yes ]; then
+            # Although the file content is the same
+            # we still need to see if it is using the correct strategy
+            if [ "$rfile" -ef "$hfile" ] && [ ! "$strategy" = hard ]; then
+                # The files have the same inode (hard links)
                 to_home+=( "$rfile" )
-            else
-                to_repo+=( "$hfile" )  # Full path
+            elif [ -L "$hfile" ] && [ ! "$strategy" = symb ]; then
+                # The home file is a symbolic link
+                to_home+=( "$rfile" )
+            elif [ ! "$rfile" -ef "$hfile" ] && [ ! "$strategy" = copy ]; then
+                # The hfile is not a hard link or a symbolic link to the repository
+                # that means it must be a copy
+                to_home+=( "$rfile" )
             fi
         fi
-    done
-fi
+        message 3 "The files ${hfile} and ${script_dir}/home/$rfile are the same"
+    else
+        if [ "$trust" = repo ] ; then
+            # Overrides time stamp and just trusts that the repo version is correct
+            to_home+=( "$rfile" )
+        elif [ "$trust" = home ] ; then
+            # Overrides time stamp and just trusts that the home version is correct
+            to_repo+=( "$rfile" )
+        elif [ "$rfile" -nt "$hfile" ]; then
+            # The repo file is newer and different than the one in the HOME dir
+            # This is sort of the main purpose of this script
+            to_home+=( "$rfile" )
+        else
+            # Home version of the file is newer, so move it to the repo
+            to_repo+=( "$hfile" )  # Full path
+        fi
+    fi
+done
 
 _set_file_record() {
     # Sets global file_record[@]
