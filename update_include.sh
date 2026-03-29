@@ -37,8 +37,9 @@
 
         delete() {
             file="$1"      # file to delete
+            orig_hash="$2"
 
-            if [ "$#" -gt 1  ]; then
+            if [ -n "$orig_hash"  ]; then
                 # If there was a hash given, make sure it has not changed
                 curr_hash=( $(md5sum $file) )
                 if [ ! "${curr_hash[0]}" = "$orig_hash" ]; then
