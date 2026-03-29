@@ -1,6 +1,5 @@
 ################################################################################
 # Include for do-update.sh
-        set -x
         fatal() {
             # Called when there is an unrecoverable error
             echo "FATAL: $*"
