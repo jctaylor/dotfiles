@@ -4,7 +4,8 @@ return {
         "nvimtools/none-ls.nvim",
         dependencies = {
             "nvim-lua/plenary.nvim",
-            "nvimtools/none-ls-extras.nvim"
+            "nvimtools/none-ls-extras.nvim",
+            "gbprod/none-ls-luacheck.nvim",
         },
         opts = function()
             local null_ls = require("null-ls")  -- Seems weird, see https://github.com/nvimtools/none-ls.nvim
@@ -20,6 +21,7 @@ return {
                         return { "--verbose", "--python-executable", venv_path .. "/bin/python" }
                     end,
                 }),
+                require("none-ls-luacheck.diagnostics.luacheck"),
             }
             return {
                 debug = true,
