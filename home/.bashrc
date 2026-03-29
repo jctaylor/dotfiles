@@ -139,7 +139,7 @@ PERL_LOCAL_LIB_ROOT="/home/jason/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_R
 PERL_MB_OPT="--install_base \"/home/jason/perl5\""; export PERL_MB_OPT;
 PERL_MM_OPT="INSTALL_BASE=/home/jason/perl5"; export PERL_MM_OPT;
 
-PYENV_ROOT=${HOME}/.conf/penv
+PYENV_ROOT=${HOME}/.config/penv; export PYENV_ROOT
 
 # Note this modifies PATH so it needs to be after the last PATH modification
 if command -v pyenv 1>/dev/null 2>&1; then

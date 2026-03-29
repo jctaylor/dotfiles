@@ -8,9 +8,10 @@ return {
   config = function()
     local dap = require("dap")
     local ui = require("dapui")
+    local home = vim.env.HOME  -- my invention. Do I need to do this?
 
     require("dapui").setup()
-    require("dap-python").setup("python") -- Points to your default python path
+    require("dap-python").setup(home .. "/.local/share/pipx/venvs/debugpy/bin/python")
 
     -- Automatically open/close UI when debugging starts/ends
     dap.listeners.before.attach.dapui_config = function() ui.open() end
