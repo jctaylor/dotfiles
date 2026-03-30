@@ -146,3 +146,20 @@ if command -v pyenv 1>/dev/null 2>&1; then
     eval "$(pyenv init - bash)"
 fi
 
+. "$HOME/.cargo/env"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+PATH="/home/jason/.local/bin:${PATH}"
+
+# Android NDK r27b
+export PATH="/home/jason/android-ndk-r27b/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+
+# Secure ROM Assessment lab tools venv
+source "/home/jason/.venv/srd/bin/activate"
+
+# Android SDK
+export ANDROID_HOME="/home/jason/android-sdk"
+export PATH="/home/jason/android-sdk/build-tools/34.0.0:$PATH"

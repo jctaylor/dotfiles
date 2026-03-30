@@ -444,7 +444,7 @@ for rfile in "${update_files[@]}"; do
             to_home+=( "$rfile" )
         elif [ "$trust" = home ] ; then
             # Overrides time stamp and just trusts that the home version is correct
-            to_repo+=( "$rfile" )
+            to_repo+=( "$hfile" )
         elif [ "$rfile" -nt "$hfile" ]; then
             # The repo file is newer and different than the one in the HOME dir
             # This is sort of the main purpose of this script
@@ -463,7 +463,7 @@ _set_file_record() {
     # file_record[1] = md5 hash
     # file_record[2] = file name
     #
-    # Written to the update script so that it can verify the files have not changed
+    # Written to the update script so that it can verify the source files have not changed
     file="$1"
     if [ -f "$file" ]; then
         file_record=( "[$(stat -c %z "$file" )]" $(md5sum "$file" | sed 's/ \+/ "/' | sed 's/$/"/') $2 )
@@ -477,11 +477,11 @@ generate_update_script() {
     #       delete_files[@] - array of files in the home directory that should
     #                          be removed in the new config
     #
-    #       to_home[@] ----- array of repo files that are used to update HOME
-    #                          directory files
+    #       to_home[@] ----- array of repo files (relative path) that are used
+    #                          to update HOME directory files
     #
-    #       to_repo[@] ----- array of newer files in the HOME directory that are
-    #                           being pulled into the repo.
+    #       to_repo[@] ----- array of files in the HOME directory that are newer
+    #                           then the repo versions. These are full paths.
     #
     # Other input:
     #
@@ -514,18 +514,20 @@ generate_update_script() {
     echo '#    UPDATE  dotfiles --> HOME'
     echo "#"
     for rfile in "${to_home[@]}"; do
-        hfile="$(realpath "$HOME/$rfile")"
-        dfile="$(realpath "./$rfile")"
-        _set_file_record "$dfile" UPDATE # This echos the record and set file_record
-        echo "update \"$dfile\" \"$hfile\" ${file_record[1]}"
+        hfile="$(realpath -m $HOME/$rfile)"  # -m canonicalize missing file
+	sfile="$(realpath $rfile)"           # rfile must exist (its the source)
+        dfile="$hfile"
+        _set_file_record "$sfile" UPDATE # This echos the record and set file_record
+        echo "update \"$sfile\" \"$dfile\" ${file_record[1]}"
     done
     echo "#"
     echo '#    UPDATE  HOME --> dotfiles'
     echo "#"
     for hfile in "${to_repo[@]}"; do
-        dfile="${hfile#${HOME}/}"
-        _set_file_record "$hfile" UPDATE
-        echo "update \"$hfile\" \"$dfile\" ${file_record[1]}"
+	sfile="$hfile"
+        dfile="./${hfile#${HOME}/}"    # Works since repo files are relative
+        _set_file_record "$sfile" UPDATE
+        echo "update \"$sfile\" \"$dfile\" ${file_record[1]}"
     done
     echo "#"
     echo "#    CLEAN UP"

@@ -41,10 +41,10 @@
 
             if [ "$#" -gt 1  ]; then
                 # If there was a hash given, make sure it has not changed
-                curr_hash=( "$(md5sum $file)" )
-                if [ ! "$curr_hash" = "$orig_hash" ]; then
+                curr_hash=( $(md5sum $file) )
+                if [ ! "${curr_hash[0]}" = "$orig_has" ]; then
                     echo >&2 "Not deleting \"$file\". Hash has changed"
-                    return 1
+                    return 1h
                 fi
             fi
 
@@ -58,6 +58,10 @@
             src="$1"
             dst="$2"
 
+	    # Make sure destination directory exists
+	    dst_dir="$(dirname "$dst")"
+	    mkdir -p "$dst_dir"
+
             # Unlike delete, it is an error if the src does not exist
             if [ ! -f "$src" ]; then
                 echo >&2 "Update failed. \"$file\" does not exist"
@@ -65,9 +69,9 @@
 
             if [ -n "$3" ]; then
                 # If there was a hash, makes sure it has not changed
-                curr_hash=( "$(md5sum $src)" )
-                if [ ! "$curr_hash" = "$3" ]; then
-                    echo >&2 "Not updating $dst. Source file hash has changed"
+                curr_hash=( $(md5sum $src) )
+                if [ ! "${curr_hash[0]}" = "$3" ]; then
+                    echo >&2 "Not updating $dst. Source file hash has changed (current ${curr_hash[0]} previous $3)"
                     return 1
                 fi
             fi
