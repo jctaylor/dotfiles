@@ -7,7 +7,8 @@
         }
 
         update_cmd() {
-	    echo "UPDATE COMMAND"
+            echo "UPDATING $1 --> $2"
+            mkdir -p "$(dirname $2)"   # Make sure the directory exists
             case "$strategy" in
                 copy)
                     cp "$@"
@@ -22,7 +23,7 @@
 		    fatal "Invalid strategy \"$strategy\""
 		    ;;
             esac
-        return 0
+            return 0
         }
 
         if [ -n "${backup_dir}" ] && [ ! -d "${backup_dir}" ]; then

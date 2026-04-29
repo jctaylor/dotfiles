@@ -522,7 +522,6 @@ generate_update_script() {
         hfile="${hfile:=$HOME/$rfile}"       # On mac file must exist or realpath return an empty string
         dfile="$(realpath "./$rfile")"
         _set_file_record "$dfile" UPDATE # This echos the record and set file_record
-	echo 'mkdir -p "$(dirname "'$hfile'")"'   # Make sure the directory exists
         echo "update \"$dfile\" \"$hfile\" ${file_record[1]}"
     done
     echo "#"
@@ -543,7 +542,7 @@ generate_update_script() {
 }
 
 rm -rf "${update_script}"
-if [ -z "${delete_files[@]}${to_home[@]}${to_repo[@]}" ] ; then
+if [ -z "${delete_files[*]}${to_home[*]}${to_repo[*]}" ] ; then
 	echo
 	echo "  NO UPDATE NEEDED"
 	echo
