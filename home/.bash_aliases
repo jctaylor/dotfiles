@@ -15,24 +15,23 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
-# some more ls aliases
-# 
-alias la='ls -AF'
-alias l='ls -CF'
-alias cls='clear; ls -CF'
-alias clsa='clear; ls -CFA'
-alias cll='clear; ls -lF'
-alias clla='clear; ls -lFA'
-alias ll='ls -lF'
-alias lla='ls -AlF'
-alias lart='ls -lart'
+# Directory listings
+alias ls='ls -CF --color=auto'
+alias ll='ls -lF --color=auto'
+alias lla='ls -AlF --color=auto'
+alias la='ls -AF --color=auto'
+alias l='ls -CF --color=auto'
+alias lart='ls -lArt --color=auto'
+alias cls='clear; ls -CF --color=auto'
+alias cll='clear; ls -lF --color=auto'
 
 alias cd='cd -P'
 
+# Python
 alias py3='python3'
 alias py='python3'
 
-
+# Git
 alias gdt='git difftool'
 alias g='git status'
 
