@@ -17,7 +17,7 @@ return {
         -- "hrsh7th/vim-vsnip",
 
         -- For luasnip users.
-        { "L3MON4D3/LuaSnip", run = "make install_jsregexp" },
+        { "L3MON4D3/LuaSnip", build = "make install_jsregexp" },
         "saadparwaiz1/cmp_luasnip",
 
         -- For mini.snippets users.

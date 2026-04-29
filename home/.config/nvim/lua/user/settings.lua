@@ -80,6 +80,13 @@ float = {
 ]]--
 })
 
+vim.filetype.add({
+    extension = {
+        pl = 'prolog',
+        pro = 'prolog'
+    },
+})
+
 vim.o.winborder = 'rounded'  -- Default for all floats
 
 vim.opt.listchars = "tab:——▷,trail:⎵,extends:⟩,precedes:⟨,space:"
