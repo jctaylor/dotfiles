@@ -31,7 +31,11 @@
 
         backup() {
             if [ -n "${backup_dir}" ] && [ -f "$1" ]; then
-                cp --backup "$1" "${backup_dir}" || fatal "Could not backup $1 to $backup_dir"
+                if [[ $(uname) == Darwin ]]; then
+                    cp "$1" "${backup_dir}" || fatal "Could not backup $1 to $backup_dir"
+                else
+                    cp --backup "$1" "${backup_dir}" || fatal "Could not backup $1 to $backup_dir"
+                fi
             fi
         }
 
