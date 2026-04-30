@@ -7,7 +7,8 @@
         }
 
         update_cmd() {
-	    echo "UPDATE COMMAND"
+            echo "UPDATING $1 --> $2"
+            mkdir -p "$(dirname $2)"   # Make sure the directory exists
             case "$strategy" in
                 copy)
                     cp "$@"
@@ -22,7 +23,7 @@
 		    fatal "Invalid strategy \"$strategy\""
 		    ;;
             esac
-        return 0
+            return 0
         }
 
         if [ -n "${backup_dir}" ] && [ ! -d "${backup_dir}" ]; then
@@ -31,7 +32,11 @@
 
         backup() {
             if [ -n "${backup_dir}" ] && [ -f "$1" ]; then
-                cp --backup "$1" "${backup_dir}" || fatal "Could not backup $1 to $backup_dir"
+                if [[ $(uname) == Darwin ]]; then
+                    cp "$1" "${backup_dir}" || fatal "Could not backup $1 to $backup_dir"
+                else
+                    cp --backup "$1" "${backup_dir}" || fatal "Could not backup $1 to $backup_dir"
+                fi
             fi
         }
 

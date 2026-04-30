@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -u
 
@@ -161,7 +161,7 @@ message() {
 
 # Prerequisites
 if [ "${BASH_VERSINFO}" -lt 4 ]; then
-    fatal "This script \"$script_name\" requires bash version 4.0 or greater"
+    fatal "This script \"$script_name\" requires bash version 4.0 or greater have ${BASH_VERSION}"
     # TODO  re-write to use 3.27.0+
     #       need to get rid of mapfile and maybe some array stuff
     # -or-
@@ -466,7 +466,11 @@ _set_file_record() {
     # Written to the update script so that it can verify the files have not changed
     file="$1"
     if [ -f "$file" ]; then
-        file_record=( "[$(stat -c %z "$file" )]" $(md5sum "$file" | sed 's/ \+/ "/' | sed 's/$/"/') $2 )
+        if [[ $(uname) == "Darwin" ]]; then
+            file_record=( "[$(stat -f %m "$file" )]" $(md5sum "$file" | sed 's/ \+/ "/' | sed 's/$/"/') $2 )
+        else
+            file_record=( "[$(stat -c %z "$file" )]" $(md5sum "$file" | sed 's/ \+/ "/' | sed 's/$/"/') $2 )
+        fi
     else
         file_record=( "" "" "$file" ) # If the file does not exist the record is null
     fi
@@ -494,7 +498,7 @@ generate_update_script() {
     #
     #
 
-    echo "#!/bin/bash"
+    echo "#!/usr/bin/env bash"
     echo "#"
     echo "# Created by $script_name $time_stamp"
     echo "# Run this script to update HOME files"
@@ -514,7 +518,8 @@ generate_update_script() {
     echo '#    UPDATE  dotfiles --> HOME'
     echo "#"
     for rfile in "${to_home[@]}"; do
-        hfile="$(realpath "$HOME/$rfile")"
+        hfile="$(realpath &> /dev/null "$HOME/$rfile")"
+        hfile="${hfile:=$HOME/$rfile}"       # On mac file must exist or realpath return an empty string
         dfile="$(realpath "./$rfile")"
         _set_file_record "$dfile" UPDATE # This echos the record and set file_record
         echo "update \"$dfile\" \"$hfile\" ${file_record[1]}"
@@ -537,7 +542,17 @@ generate_update_script() {
 }
 
 rm -rf "${update_script}"
+if [ -z "${delete_files[*]}${to_home[*]}${to_repo[*]}" ] ; then
+	echo
+	echo "  NO UPDATE NEEDED"
+	echo
+	exit 0
+fi
 generate_update_script >  "${update_script}" && chmod +x "${update_script}"
+echo
+echo " Update script created: \"$update_script\""
+echo " Inspect update script. If everything looks good run it to complete the udpate"
+echo
 
 exit $?
 

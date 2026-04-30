@@ -17,6 +17,6 @@ return {
     '--',
     'stdio',
   },
-  filetypes = { 'pl', 'pro', 'prolog' },
+  filetypes = { 'prolog' },
   root_markers = { 'pack.pl', '.git' },
 }
