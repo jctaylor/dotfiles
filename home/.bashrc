@@ -120,7 +120,47 @@ function prompt_cmd
     echo -ne "\033]0;$(pwd| sed 's#/home/jtaylor/c4a/#Project: #' | sed 's#/home/jtaylor#~#' )\007"
 }
 
-PROMPT_COMMAND='prompt_cmd'
+## Prompt command
+# 1. Load Git prompt support if available
+source /usr/lib/git-core/git-prompt.sh 2>/dev/null || source /usr/share/git-core/git-prompt.sh 2>/dev/null
+
+# 2. Configure Git prompt
+GIT_PS1_SHOWDIRTYSTATE=true
+GIT_PS1_SHOWCOLORHINTS=true
+GIT_PS1_SHOWUNTRACKEDFILES=true
+
+# 3. Dynamic Prompt Function
+set_prompt() {
+    local EXIT="$?"
+    local TIME="\[\033[36m\]\t\[\033[0m\]" # Time in cyan
+    local GIT_INFO='$(__git_ps1 " (%s)")'
+
+    # Error code visual
+    if [ $EXIT -eq 0 ]; then
+        local ERR="\[\033[32m\]✔\[\033[0m\]"
+    else
+        local ERR="\[\033[31m\]✘ $EXIT\[\033[0m\]"
+    fi
+
+    local job_count=$(jobs -r -p | wc -l)
+
+    if [[ "$job_count" -gt 0 ]]; then
+        JOB_SYMB="\[\033[1;38;5;27m\][ ${job_count}]\[\033[0m\] "
+    else
+        JOB_SYMB=""
+    fi
+
+    if [ -n "$VIRTUAL_ENV" ]; then
+        virt="\[\e[12m\]${VIRTUAL_ENV:+($(basename "$VIRTUAL_ENV"))}\[\e[0m\] "
+    else
+        virt=""
+    fi
+
+    PS1="${ERR} ${TIME} \[\033[33m\]\w\[\033[0m\]${GIT_INFO} ${virt}${JOB_SYMB}\n\[\e[32m\]\$ \[\e[0m\]"
+}
+
+# 4. Use PROMPT_COMMAND to update PS1 before every command
+PROMPT_COMMAND=set_prompt
 
 # NOTE: use sandbox/colors to see terminal colors with the codes
 #       LS_COLORS environment variable has all the color codes used to highlight

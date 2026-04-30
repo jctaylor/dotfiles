@@ -7,10 +7,10 @@ vim.keymap.set("v", ">", ">gv", { desc = "Indent visual block and keep visual" }
 vim.keymap.set("v", "<", "<gv", { desc = "De-indent visual block and keep visual" })
 
 vim.keymap.set("n", "J", "mzJ`z")
-vim.keymap.set("n", "<C-d>", "<C-d>zz")
-vim.keymap.set("n", "<C-u>", "<C-u>zz")
-vim.keymap.set("n", "n", "nzzzv", { desc = "Move to next search term, and center screen"} )
-vim.keymap.set("n", "N", "Nzzzv")
+vim.keymap.set("n", "<C-d>", "<C-d>zz", {desc = "Scroll down and put active line at the center of the screen"})
+vim.keymap.set("n", "<C-u>", "<C-u>zz", {desc = "Scroll up and put active line at the center of the screen"})
+--vim.keymap.set("n", "n", "nzzzv", { desc = "Move to next search term, and center screen"} )
+--vim.keymap.set("n", "N", "Nzzzv")
 
 -- greatest remap ever
 -- This pastes the current register over the current visual highlight
@@ -26,8 +26,8 @@ vim.keymap.set({"n", "v"}, "<leader>d", [["_d]])
 vim.keymap.set("n", "Q", "<nop>")
 
 --
-vim.keymap.set("n", "<leader>k", "<cmd>lnext<CR>zz", {desc = "Jump to next location in list in current buffer"})
-vim.keymap.set("n", "<leader>j", "<cmd>lprev<CR>zz", {desc = "Jump to previous location in list in current buffer"})
+vim.keymap.set("n", "<leader>k", "<cmd>lnext<CR>zz", {desc = 'Jump to next "location" in list in current buffer'})
+vim.keymap.set("n", "<leader>j", "<cmd>lprev<CR>zz", {desc = 'Jump to previous "location" in list in current buffer'})
 
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 --vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
