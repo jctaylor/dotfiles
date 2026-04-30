@@ -528,7 +528,7 @@ generate_update_script() {
     echo '#    UPDATE  HOME --> dotfiles'
     echo "#"
     for hfile in "${to_repo[@]}"; do
-        dfile="${hfile#${HOME}/}"
+        dfile="home/${hfile#${HOME}/}"
         _set_file_record "$hfile" UPDATE
         echo "update \"$hfile\" \"$dfile\" ${file_record[1]}"
     done
