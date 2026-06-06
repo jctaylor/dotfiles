@@ -122,7 +122,7 @@ function prompt_cmd
 
 ## Prompt command
 # 1. Load Git prompt support if available
-source /usr/lib/git-core/git-prompt.sh 2>/dev/null || source /usr/share/git-core/git-prompt.sh 2>/dev/null
+source /usr/lib/git-core/git-prompt.sh 2>/dev/null || source /usr/share/git-core/git-prompt.sh 2>/dev/null || source /usr/share/git-core/contrib/completion/git-prompt.sh
 
 # 2. Configure Git prompt
 GIT_PS1_SHOWDIRTYSTATE=true
@@ -143,7 +143,7 @@ set_prompt() {
         local ERR="\[\033[31m\] ✘ $EXIT\[\033[0m\]"
     fi
 
-    local job_count=$(jobs -r -p | wc -l)
+    local job_count=$(jobs -p | wc -l)
 
     if [[ "$job_count" -gt 0 ]]; then
         JOB_SYMB="\[\033[1;38;5;27m\][ ${job_count}]\[\033[0m\] "
