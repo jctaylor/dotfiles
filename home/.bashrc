@@ -117,7 +117,7 @@ function prompt_cmd
     #jobs
 
     # Set the window name and icon?
-    echo -ne "\033]0;$(pwd| sed 's#/home/jtaylor/c4a/#Project: #' | sed 's#/home/jtaylor#~#' )\007"
+    echo -ne "\033]0;$(pwd | sed 's#/home/jtaylor#~#' )\007"
 }
 
 ## Prompt command
@@ -133,13 +133,14 @@ GIT_PS1_SHOWUNTRACKEDFILES=true
 set_prompt() {
     local EXIT="$?"
     local TIME="\[\033[36m\]\t\[\033[0m\]" # Time in cyan
-    local GIT_INFO='$(__git_ps1 " (%s)")'
+    local GIT_INFO='$(__git_ps1 " (%s)")'  # TODO add   
 
     # Error code visual
     if [ $EXIT -eq 0 ]; then
-        local ERR="\[\033[32m\]✔\[\033[0m\]"
-    else
-        local ERR="\[\033[31m\]✘ $EXIT\[\033[0m\]"
+        # ✔ 󰸞    󰸞 󰞑     󰡕 
+        local ERR="\[\033[32m\] \[\033[0m\]"
+    else 
+        local ERR="\[\033[31m\] ✘ $EXIT\[\033[0m\]"
     fi
 
     local job_count=$(jobs -r -p | wc -l)
@@ -157,6 +158,9 @@ set_prompt() {
     fi
 
     PS1="${ERR} ${TIME} \[\033[33m\]\w\[\033[0m\]${GIT_INFO} ${virt}${JOB_SYMB}\n\[\e[32m\]\$ \[\e[0m\]"
+
+    # Set window title
+    echo -ne "\033]0;$(pwd | sed 's#/home/jtaylor#~#' )\007"
 }
 
 # 4. Use PROMPT_COMMAND to update PS1 before every command
@@ -201,4 +205,3 @@ case ":$PATH:" in
 esac
 
 # <<< juliaup initialize <<<
-. "$HOME/.cargo/env"
